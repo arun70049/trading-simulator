@@ -1412,6 +1412,7 @@ function updateEstimate() {
 }
 
 
+
 /* =========================================================
    EXECUTE ORDER — D1 API
 ========================================================= */
@@ -1438,4 +1439,398 @@ async function executeOrder() {
 
   const quantity =
     Number(
-      document.getElem
+      document.getElementById(
+        "orderQuantity"
+      )?.value
+    );
+
+
+  const price =
+    Number(
+      document.getElementById(
+        "orderPrice"
+      )?.value
+    );
+
+
+  if (!symbol) {
+
+    alert("Stock not found.");
+
+    return;
+
+  }
+
+
+  if (
+    side !== "BUY" &&
+    side !== "SELL"
+  ) {
+
+    alert("Invalid order side.");
+
+    return;
+
+  }
+
+
+  if (
+    !Number.isInteger(quantity) ||
+    quantity <= 0
+  ) {
+
+    alert(
+      "Quantity must be a positive whole number."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !Number.isFinite(price) ||
+    price <= 0
+  ) {
+
+    alert(
+      "Enter a valid price."
+    );
+
+    return;
+
+  }
+
+
+  const button =
+    document.querySelector(
+      "#orderModal .confirm-order, #orderModal .buy-btn, #orderModal .sell-btn, #orderModal button[type='submit']"
+    );
+
+
+  if (button) {
+
+    button.disabled = true;
+
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/order",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          credentials:
+            "same-origin",
+
+          body:
+            JSON.stringify({
+              symbol,
+              side,
+              quantity,
+              price
+            })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.error ||
+        "Unable to execute order."
+      );
+
+    }
+
+
+    closeOrder();
+
+
+    const loaded =
+      await loadPortfolio();
+
+
+    if (!loaded) {
+      return;
+    }
+
+
+    renderDashboard();
+
+
+    alert(
+      `${side} order executed successfully.\n\n` +
+      `${symbol} × ${quantity}\n` +
+      `Price: ${money(price)}\n` +
+      `Value: ${money(quantity * price)}`
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "EXECUTE ORDER ERROR:",
+      error
+    );
+
+
+    alert(
+      error.message ||
+      "Unable to execute order."
+    );
+
+  } finally {
+
+    if (button) {
+
+      button.disabled = false;
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   POSITIONS
+========================================================= */
+
+function renderPositions() {
+
+  const container =
+    document.getElementById(
+      "positions"
+    );
+
+
+  if (!container) return;
+
+
+  container.innerHTML = "";
+
+
+  const positions =
+    Object.values(state.positions);
+
+
+  if (positions.length === 0) {
+
+    container.innerHTML = `
+      <div class="empty-state">
+        No open positions.
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  positions.forEach(position => {
+
+    const stock =
+      getStock(position.symbol);
+
+
+    if (!stock) return;
+
+
+    const marketValue =
+      Number(position.quantity) *
+      Number(stock.price);
+
+
+    const pnl =
+      (
+        Number(stock.price) -
+        Number(position.averagePrice)
+      ) *
+      Number(position.quantity);
+
+
+    const row =
+      document.createElement(
+        "div"
+      );
+
+
+    row.className =
+      "position-row";
+
+
+    row.innerHTML = `
+
+      <div>
+        <strong>
+          ${position.symbol}
+        </strong>
+
+        <div class="muted">
+          ${stock.name}
+        </div>
+      </div>
+
+
+      <div>
+        ${position.quantity}
+      </div>
+
+
+      <div>
+        ${money(position.averagePrice)}
+      </div>
+
+
+      <div>
+        ${money(stock.price)}
+      </div>
+
+
+      <div>
+        ${money(marketValue)}
+      </div>
+
+
+      <div class="${
+        pnl >= 0
+          ? "green"
+          : "red"
+      }">
+
+        ${pnl >= 0 ? "+" : ""}
+        ${money(pnl)}
+
+      </div>
+
+    `;
+
+
+    container.appendChild(row);
+
+  });
+
+}
+
+
+/* =========================================================
+   ORDERS
+========================================================= */
+
+function renderOrders() {
+
+  const container =
+    document.getElementById(
+      "orders"
+    );
+
+
+  if (!container) return;
+
+
+  container.innerHTML = "";
+
+
+  if (
+    !Array.isArray(state.orders) ||
+    state.orders.length === 0
+  ) {
+
+    container.innerHTML = `
+      <div class="empty-state">
+        No orders yet.
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  state.orders.forEach(order => {
+
+    const row =
+      document.createElement(
+        "div"
+      );
+
+
+    row.className =
+      "order-row";
+
+
+    row.innerHTML = `
+
+      <div>
+
+        <strong>
+          ${order.symbol}
+        </strong>
+
+        <div class="muted">
+          ${order.time || ""}
+        </div>
+
+      </div>
+
+
+      <div>
+        ${order.quantity}
+      </div>
+
+
+      <div>
+        ${money(order.price)}
+      </div>
+
+
+      <div>
+        ${money(order.value)}
+      </div>
+
+
+      <div class="${
+        order.side === "BUY"
+          ? "red"
+          : "green"
+      }">
+
+        ${order.side}
+
+      </div>
+
+    `;
+
+
+    container.appendChild(row);
+
+  });
+
+}
+
+
+/* =========================================================
+   STARTUP
+========================================================= */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+
+    checkSession();
+
+  }
+);
