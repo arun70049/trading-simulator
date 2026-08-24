@@ -1516,4 +1516,884 @@ async function logout() {
   } catch (error) {
 
     console.error(
-      "LOGOUT ERR
+      "LOGOUT ERROR:",
+      error
+    );
+
+  }
+
+
+  resetState();
+
+
+  TradeSimEvents.emit(
+    "auth:logout"
+  );
+
+
+  showLoginScreen();
+
+}
+
+
+/* =========================================================
+   18. DASHBOARD
+========================================================= */
+
+function renderDashboard() {
+
+  renderAccount();
+
+  renderMarket();
+
+  renderPositions();
+
+  renderOrders();
+
+
+  TradeSimEvents.emit(
+    "dashboard:rendered"
+  );
+
+}
+
+
+function renderAccount() {
+
+  const balance =
+    document.getElementById(
+      "balance"
+    );
+
+
+  const portfolio =
+    document.getElementById(
+      "portfolio"
+    );
+
+
+  const unrealized =
+    document.getElementById(
+      "unrealized"
+    );
+
+
+  const realized =
+    document.getElementById(
+      "realized"
+    );
+
+
+  const total =
+    document.getElementById(
+      "totalPnl"
+    );
+
+
+  if (balance) {
+
+    balance.textContent =
+      money(
+        TradeSimState.cash
+      );
+
+  }
+
+
+  if (portfolio) {
+
+    portfolio.textContent =
+      money(
+        calculatePortfolioValue()
+      );
+
+  }
+
+
+  updatePnlElement(
+    unrealized,
+    calculateUnrealizedPnl()
+  );
+
+
+  updatePnlElement(
+    realized,
+    number(
+      TradeSimState.realizedPnl
+    )
+  );
+
+
+  updatePnlElement(
+    total,
+    calculateTotalPnl()
+  );
+
+}
+
+
+function updatePnlElement(
+  element,
+  value
+) {
+
+  if (!element) return;
+
+
+  element.textContent =
+    money(value);
+
+
+  element.className =
+    "stat-value " +
+    (
+      value >= 0
+        ? "green"
+        : "red"
+    );
+
+}
+
+
+/* =========================================================
+   19. MARKET RENDERER
+========================================================= */
+
+function renderMarket() {
+
+  const container =
+    document.getElementById(
+      "market"
+    );
+
+
+  if (!container) return;
+
+
+  container.innerHTML =
+    "";
+
+
+  TradeSimState.stocks.forEach(
+    stock => {
+
+      const price =
+        number(stock.price);
+
+
+      const previousClose =
+        number(
+          stock.previousClose
+        );
+
+
+      const change =
+        price -
+        previousClose;
+
+
+      const percent =
+        previousClose !== 0
+          ? (
+              change /
+              previousClose
+            ) * 100
+          : 0;
+
+
+      const card =
+        document.createElement(
+          "div"
+        );
+
+
+      card.className =
+        "stock-card";
+
+
+      card.innerHTML = `
+
+        <div class="stock-top">
+
+          <div>
+
+            <div class="stock-name">
+              ${escapeHTML(stock.name || "")}
+            </div>
+
+            <div class="symbol">
+              ${escapeHTML(stock.symbol || "")}
+            </div>
+
+          </div>
+
+          <div>
+
+            <div class="stock-price">
+              ${money(price)}
+            </div>
+
+            <div class="stock-change ${
+              change >= 0
+                ? "green"
+                : "red"
+            }">
+
+              ${change >= 0 ? "+" : ""}
+              ${money(change)}
+              (${percent.toFixed(2)}%)
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="stock-actions">
+
+          <button
+            class="btn buy-btn"
+            onclick="openOrder('${escapeAttribute(stock.symbol)}', 'BUY')"
+          >
+            BUY
+          </button>
+
+          <button
+            class="btn sell-btn"
+            onclick="openOrder('${escapeAttribute(stock.symbol)}', 'SELL')"
+          >
+            SELL
+          </button>
+
+        </div>
+
+      `;
+
+
+      container.appendChild(card);
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   20. ORDER MODAL
+========================================================= */
+
+function openOrder(
+  symbol,
+  side
+) {
+
+  const stock =
+    getStock(symbol);
+
+
+  if (!stock) {
+
+    alert("Stock not found.");
+
+    return;
+
+  }
+
+
+  TradeSimState.ui.currentOrder = {
+
+    symbol,
+    side
+
+  };
+
+
+  const modal =
+    document.getElementById(
+      "orderModal"
+    );
+
+
+  if (!modal) return;
+
+
+  const symbolElement =
+    document.getElementById(
+      "orderSymbol"
+    );
+
+
+  const sideElement =
+    document.getElementById(
+      "orderSide"
+    );
+
+
+  const quantityElement =
+    document.getElementById(
+      "orderQuantity"
+    );
+
+
+  const priceElement =
+    document.getElementById(
+      "orderPrice"
+    );
+
+
+  if (symbolElement) {
+
+    symbolElement.textContent =
+      `${stock.name} (${stock.symbol})`;
+
+  }
+
+
+  if (sideElement) {
+
+    sideElement.value =
+      side;
+
+  }
+
+
+  if (quantityElement) {
+
+    quantityElement.value =
+      1;
+
+  }
+
+
+  if (priceElement) {
+
+    priceElement.value =
+      number(
+        stock.price
+      ).toFixed(2);
+
+  }
+
+
+  modal.classList.add(
+    "show"
+  );
+
+
+  updateEstimate();
+
+}
+
+
+function closeOrder() {
+
+  const modal =
+    document.getElementById(
+      "orderModal"
+    );
+
+
+  if (modal) {
+
+    modal.classList.remove(
+      "show"
+    );
+
+  }
+
+
+  TradeSimState.ui.currentOrder =
+    null;
+
+}
+
+
+/* =========================================================
+   21. ORDER ESTIMATE
+========================================================= */
+
+function updateEstimate() {
+
+  const current =
+    TradeSimState.ui.currentOrder;
+
+
+  if (!current) return;
+
+
+  const stock =
+    getStock(current.symbol);
+
+
+  if (!stock) return;
+
+
+  const quantity =
+    number(
+      document.getElementById(
+        "orderQuantity"
+      )?.value
+    );
+
+
+  const inputPrice =
+    number(
+      document.getElementById(
+        "orderPrice"
+      )?.value
+    );
+
+
+  const price =
+    inputPrice > 0
+      ? inputPrice
+      : number(stock.price);
+
+
+  const value =
+    quantity * price;
+
+
+  const element =
+    document.getElementById(
+      "estimatedValue"
+    );
+
+
+  if (element) {
+
+    element.textContent =
+      money(value);
+
+  }
+
+}
+
+
+/* =========================================================
+   22. EXECUTE ORDER
+========================================================= */
+
+async function executeOrder() {
+
+  const current =
+    TradeSimState.ui.currentOrder;
+
+
+  if (!current) {
+
+    alert(
+      "No order selected."
+    );
+
+    return;
+
+  }
+
+
+  const side =
+    document.getElementById(
+      "orderSide"
+    )?.value;
+
+
+  const quantity =
+    Number(
+      document.getElementById(
+        "orderQuantity"
+      )?.value
+    );
+
+
+  const price =
+    Number(
+      document.getElementById(
+        "orderPrice"
+      )?.value
+    );
+
+
+  if (
+    side !== "BUY" &&
+    side !== "SELL"
+  ) {
+
+    alert(
+      "Invalid order side."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !Number.isInteger(quantity) ||
+    quantity <= 0
+  ) {
+
+    alert(
+      "Quantity must be a positive whole number."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !Number.isFinite(price) ||
+    price <= 0
+  ) {
+
+    alert(
+      "Enter a valid price."
+    );
+
+    return;
+
+  }
+
+
+  const button =
+    document.querySelector(
+      "#orderModal .confirm-btn"
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Processing...";
+
+  }
+
+
+  try {
+
+    await TradeSimAPI.post(
+      TradeSimConfig.api.order,
+      {
+        symbol:
+          current.symbol,
+
+        side,
+
+        quantity,
+
+        price
+      }
+    );
+
+
+    closeOrder();
+
+
+    const loaded =
+      await loadPortfolio();
+
+
+    if (!loaded) {
+
+      return;
+
+    }
+
+
+    renderDashboard();
+
+
+    TradeSimEvents.emit(
+      "order:executed",
+      {
+        symbol:
+          current.symbol,
+
+        side,
+
+        quantity,
+
+        price
+      }
+    );
+
+
+    alert(
+      `${side} order executed successfully.\n\n` +
+      `${current.symbol} × ${quantity}\n` +
+      `Price: ${money(price)}\n` +
+      `Value: ${money(quantity * price)}`
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "EXECUTE ORDER ERROR:",
+      error
+    );
+
+
+    alert(
+      error.message ||
+      "Unable to execute order."
+    );
+
+  } finally {
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Confirm Order";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   23. POSITIONS
+========================================================= */
+
+function renderPositions() {
+
+  const container =
+    document.getElementById(
+      "positions"
+    );
+
+
+  if (!container) return;
+
+
+  container.innerHTML =
+    "";
+
+
+  const positions =
+    Object.values(
+      TradeSimState.positions
+    );
+
+
+  if (!positions.length) {
+
+    container.innerHTML = `
+      <div class="empty-state">
+        No open positions.
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  positions.forEach(
+    position => {
+
+      const stock =
+        getStock(
+          position.symbol
+        );
+
+
+      if (!stock) return;
+
+
+      const quantity =
+        number(
+          position.quantity
+        );
+
+
+      const averagePrice =
+        number(
+          position.averagePrice
+        );
+
+
+      const currentPrice =
+        number(
+          stock.price
+        );
+
+
+      const marketValue =
+        quantity *
+        currentPrice;
+
+
+      const pnl =
+        (
+          currentPrice -
+          averagePrice
+        ) *
+        quantity;
+
+
+      const row =
+        document.createElement(
+          "div"
+        );
+
+
+      row.className =
+        "position-row";
+
+
+      row.innerHTML = `
+
+        <div>
+
+          <strong>
+            ${escapeHTML(position.symbol)}
+          </strong>
+
+          <div class="muted">
+            ${escapeHTML(stock.name || "")}
+          </div>
+
+        </div>
+
+        <div>
+          ${quantity}
+        </div>
+
+        <div>
+          ${money(averagePrice)}
+        </div>
+
+        <div>
+          ${money(currentPrice)}
+        </div>
+
+        <div>
+          ${money(marketValue)}
+        </div>
+
+        <div class="${
+          pnl >= 0
+            ? "green"
+            : "red"
+        }">
+
+          ${pnl >= 0 ? "+" : ""}
+          ${money(pnl)}
+
+        </div>
+
+      `;
+
+
+      container.appendChild(row);
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   24. ORDERS
+========================================================= */
+
+function renderOrders() {
+
+  const container =
+    document.getElementById(
+      "orders"
+    );
+
+
+  if (!container) return;
+
+
+  container.innerHTML =
+    "";
+
+
+  if (
+    !Array.isArray(
+      TradeSimState.orders
+    ) ||
+    !TradeSimState.orders.length
+  ) {
+
+    container.innerHTML = `
+      <div class="empty-state">
+        No orders yet.
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  TradeSimState.orders.forEach(
+    order => {
+
+      const row =
+        document.createElement(
+          "div"
+        );
+
+
+      row.className =
+        "order-row";
+
+
+      row.innerHTML = `
+
+        <div>
+
+          <strong>
+            ${escapeHTML(order.symbol || "")}
+          </strong>
+
+          <div class="muted">
+            ${escapeHTML(order.time || "")}
+          </div>
+
+        </div>
+
+        <div>
+          ${number(order.quantity)}
+        </div>
+
+        <div>
+          ${money(order.price)}
+        </div>
+
+        <div>
+          ${money(order.value)}
+        </div>
+
+        <div class="${
+          order.side === "BUY"
+            ? "red"
+            : "green"
+        }">
+
+          ${escapeHTML(order.side || "")}
+
+        </div>
+
+      `;
+
+
+      container.appendChild(row);
+
+    }
+  );
+
+       }
