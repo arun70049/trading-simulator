@@ -17,7 +17,7 @@
 
   <meta
     name="description"
-    content="TradeSim - Educational Stock Trading Simulator"
+    content="TradeSim — Free Educational Stock Trading Simulator"
   >
 
   <title>TradeSim — Virtual Trading</title>
@@ -33,7 +33,16 @@
 <body>
 
 
-<div id="toast" class="toast"></div>
+<!-- =========================================================
+     GLOBAL TOAST
+========================================================= -->
+
+<div
+  id="toast"
+  class="toast"
+  aria-live="polite"
+></div>
+
 
 
 <!-- =========================================================
@@ -92,8 +101,9 @@
     </div>
 
 
+
     <!-- =====================================================
-         LOGIN FORM
+         LOGIN
     ====================================================== -->
 
     <form
@@ -111,9 +121,7 @@
 
         <div class="input-wrap">
 
-          <span>
-            👤
-          </span>
+          <span>👤</span>
 
           <input
             id="loginUsername"
@@ -129,6 +137,7 @@
       </div>
 
 
+
       <div class="field">
 
         <label for="loginPassword">
@@ -137,9 +146,7 @@
 
         <div class="input-wrap">
 
-          <span>
-            🔒
-          </span>
+          <span>🔒</span>
 
           <input
             id="loginPassword"
@@ -162,10 +169,12 @@
       </div>
 
 
+
       <div
         id="loginMessage"
         class="auth-message"
       ></div>
+
 
 
       <button
@@ -188,8 +197,9 @@
     </form>
 
 
+
     <!-- =====================================================
-         REGISTER FORM
+         REGISTER
     ====================================================== -->
 
     <form
@@ -207,9 +217,7 @@
 
         <div class="input-wrap">
 
-          <span>
-            👤
-          </span>
+          <span>👤</span>
 
           <input
             id="registerUsername"
@@ -229,6 +237,7 @@
       </div>
 
 
+
       <div class="field">
 
         <label for="registerPassword">
@@ -237,9 +246,7 @@
 
         <div class="input-wrap">
 
-          <span>
-            🔒
-          </span>
+          <span>🔒</span>
 
           <input
             id="registerPassword"
@@ -278,6 +285,7 @@
       </div>
 
 
+
       <div class="field">
 
         <label for="registerConfirmPassword">
@@ -286,9 +294,7 @@
 
         <div class="input-wrap">
 
-          <span>
-            ✓
-          </span>
+          <span>✓</span>
 
           <input
             id="registerConfirmPassword"
@@ -304,7 +310,6 @@
       </div>
 
 
-      <!-- REGISTRATION MESSAGE -->
 
       <div
         id="registerMessage"
@@ -312,7 +317,6 @@
       ></div>
 
 
-      <!-- REGISTER BUTTON -->
 
       <button
         type="submit"
@@ -334,9 +338,8 @@
     </form>
 
 
-    <!-- =====================================================
-         AUTH SWITCH
-    ====================================================== -->
+
+    <!-- AUTH SWITCH -->
 
     <div class="auth-switch">
 
@@ -355,15 +358,12 @@
     </div>
 
 
-    <!-- =====================================================
-         SIMULATION NOTE
-    ====================================================== -->
+
+    <!-- SIMULATION NOTE -->
 
     <div class="simulation-note">
 
-      <span>
-        🛡️
-      </span>
+      <span>🛡️</span>
 
       <div>
 
@@ -372,8 +372,8 @@
         </strong>
 
         <p>
-          No real money is used. TradeSim is an
-          educational trading simulator.
+          No real money is used.
+          TradeSim is an educational trading simulator.
         </p>
 
       </div>
@@ -388,7 +388,7 @@
 
 
 <!-- =========================================================
-     TRADING APP
+     TRADING APPLICATION
 ========================================================= -->
 
 <div
@@ -397,7 +397,9 @@
 >
 
 
-  <!-- HEADER -->
+  <!-- =======================================================
+       HEADER
+  ======================================================== -->
 
   <header>
 
@@ -420,6 +422,7 @@
       </div>
 
 
+
       <div class="header-actions">
 
         <span class="badge">
@@ -428,6 +431,7 @@
 
         <button
           class="logout-button"
+          type="button"
           onclick="logout()"
         >
           Logout
@@ -442,132 +446,300 @@
 
 
 
-  <!-- MAIN -->
+  <!-- =======================================================
+       MAIN APPLICATION
+  ======================================================== -->
 
   <main>
 
 
     <!-- =====================================================
-         ACCOUNT
+         HOME / DASHBOARD
     ====================================================== -->
 
-    <section class="balance-card">
+    <section
+      id="homeSection"
+      class="app-view"
+    >
 
 
-      <div class="muted">
-        Available simulated cash
-      </div>
+      <!-- ACCOUNT HERO -->
+
+      <section class="balance-card">
+
+        <div class="muted">
+          Available simulated cash
+        </div>
+
+        <div
+          class="balance"
+          id="balance"
+        >
+          ₹1,00,000.00
+        </div>
 
 
-      <div
-        class="balance"
-        id="balance"
-      >
-        ₹1,00,000.00
-      </div>
+        <div class="stats">
 
 
-      <div class="stats">
+          <div class="stat">
 
+            <div class="muted">
+              Portfolio
+            </div>
 
-        <div class="stat">
+            <div
+              class="stat-value"
+              id="portfolio"
+            >
+              ₹1,00,000.00
+            </div>
 
-          <div class="muted">
-            Portfolio
           </div>
 
-          <div
-            class="stat-value"
-            id="portfolio"
+
+
+          <div class="stat">
+
+            <div class="muted">
+              Unrealized P&L
+            </div>
+
+            <div
+              class="stat-value"
+              id="unrealized"
+            >
+              ₹0.00
+            </div>
+
+          </div>
+
+
+
+          <div class="stat">
+
+            <div class="muted">
+              Realized P&L
+            </div>
+
+            <div
+              class="stat-value"
+              id="realized"
+            >
+              ₹0.00
+            </div>
+
+          </div>
+
+
+
+          <div class="stat">
+
+            <div class="muted">
+              Total P&L
+            </div>
+
+            <div
+              class="stat-value"
+              id="totalPnl"
+            >
+              ₹0.00
+            </div>
+
+          </div>
+
+
+        </div>
+
+      </section>
+
+
+
+      <!-- DASHBOARD MARKET -->
+
+      <section class="section">
+
+        <div class="section-title">
+
+          <span>
+            Market Snapshot
+          </span>
+
+          <button
+            type="button"
+            class="text-button"
+            onclick="showView('market')"
           >
-            ₹1,00,000.00
-          </div>
+            View all →
+          </button>
 
         </div>
 
 
-        <div class="stat">
+        <div
+          id="dashboardMarket"
+          class="market-grid"
+        ></div>
 
-          <div class="muted">
-            Unrealized P&L
-          </div>
+      </section>
 
-          <div
-            class="stat-value"
-            id="unrealized"
+
+
+      <!-- DASHBOARD POSITIONS -->
+
+      <section class="section">
+
+        <div class="section-title">
+
+          <span>
+            Open Positions
+          </span>
+
+          <button
+            type="button"
+            class="text-button"
+            onclick="showView('portfolio')"
           >
-            ₹0.00
-          </div>
+            View portfolio →
+          </button>
 
         </div>
 
 
-        <div class="stat">
+        <div id="dashboardPositions"></div>
 
-          <div class="muted">
-            Realized P&L
-          </div>
+      </section>
 
-          <div
-            class="stat-value"
-            id="realized"
+
+
+      <!-- DASHBOARD ORDERS -->
+
+      <section class="section">
+
+        <div class="section-title">
+
+          <span>
+            Recent Orders
+          </span>
+
+          <button
+            type="button"
+            class="text-button"
+            onclick="showView('orders')"
           >
-            ₹0.00
-          </div>
+            View all →
+          </button>
 
         </div>
 
 
-        <div class="stat">
+        <div id="dashboardOrders"></div>
 
-          <div class="muted">
-            Total P&L
-          </div>
+      </section>
 
-          <div
-            class="stat-value"
-            id="totalPnl"
-          >
-            ₹0.00
-          </div>
-
-        </div>
-
-
-      </div>
 
     </section>
 
 
 
     <!-- =====================================================
-         MARKET
+         MARKET VIEW
     ====================================================== -->
 
-    <section class="section">
+    <section
+      id="marketSection"
+      class="app-view hidden"
+    >
 
 
-      <div class="section-title">
+      <section class="section">
 
-        <span>
-          Market
-        </span>
+        <div class="section-title">
 
-        <span class="market-status">
+          <div>
 
-          <i></i>
+            <div>
+              Market
+            </div>
 
-          SIMULATED
+            <div class="muted">
+              Simulated market environment
+            </div>
 
-        </span>
-
-      </div>
+          </div>
 
 
-      <div
-        id="market"
-        class="market-grid"
-      ></div>
+          <span class="market-status">
+
+            <i></i>
+
+            SIMULATED
+
+          </span>
+
+        </div>
+
+
+
+        <!-- SEARCH -->
+
+        <div class="market-search">
+
+          <input
+            id="marketSearch"
+            type="search"
+            placeholder="Search stocks..."
+            autocomplete="off"
+          >
+
+        </div>
+
+
+
+        <!-- MARKET FILTERS -->
+
+        <div
+          id="marketFilters"
+          class="market-filters"
+        >
+
+          <button
+            type="button"
+            class="filter-btn active"
+            data-filter="ALL"
+          >
+            All
+          </button>
+
+          <button
+            type="button"
+            class="filter-btn"
+            data-filter="INDEX"
+          >
+            Indices
+          </button>
+
+          <button
+            type="button"
+            class="filter-btn"
+            data-filter="STOCK"
+          >
+            Stocks
+          </button>
+
+        </div>
+
+
+
+        <!-- MARKET LIST -->
+
+        <div
+          id="market"
+          class="market-grid"
+        ></div>
+
+
+      </section>
 
 
     </section>
@@ -575,22 +747,104 @@
 
 
     <!-- =====================================================
-         POSITIONS
+         PORTFOLIO VIEW
     ====================================================== -->
 
-    <section class="section">
+    <section
+      id="portfolioSection"
+      class="app-view hidden"
+    >
 
 
-      <div class="section-title">
-
-        <span>
-          Open Positions
-        </span>
-
-      </div>
+      <section class="section">
 
 
-      <div id="positions"></div>
+        <div class="section-title">
+
+          <div>
+
+            <div>
+              Portfolio
+            </div>
+
+            <div class="muted">
+              Your current simulated holdings
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        <!-- PORTFOLIO SUMMARY -->
+
+        <div class="portfolio-summary">
+
+
+          <div class="portfolio-summary-card">
+
+            <span class="muted">
+              Current value
+            </span>
+
+            <strong id="portfolioValue">
+              ₹1,00,000.00
+            </strong>
+
+          </div>
+
+
+
+          <div class="portfolio-summary-card">
+
+            <span class="muted">
+              Invested
+            </span>
+
+            <strong id="investedValue">
+              ₹0.00
+            </strong>
+
+          </div>
+
+
+
+          <div class="portfolio-summary-card">
+
+            <span class="muted">
+              Unrealized P&L
+            </span>
+
+            <strong id="portfolioPnl">
+              ₹0.00
+            </strong>
+
+          </div>
+
+
+        </div>
+
+
+
+        <!-- POSITIONS -->
+
+        <div class="section-title portfolio-heading">
+
+          <span>
+            Positions
+          </span>
+
+        </div>
+
+
+        <div
+          id="positions"
+          class="portfolio-list"
+        ></div>
+
+
+      </section>
 
 
     </section>
@@ -598,22 +852,43 @@
 
 
     <!-- =====================================================
-         ORDERS
+         ORDERS VIEW
     ====================================================== -->
 
-    <section class="section">
+    <section
+      id="ordersSection"
+      class="app-view hidden"
+    >
 
 
-      <div class="section-title">
-
-        <span>
-          Recent Orders
-        </span>
-
-      </div>
+      <section class="section">
 
 
-      <div id="orders"></div>
+        <div class="section-title">
+
+          <div>
+
+            <div>
+              Orders
+            </div>
+
+            <div class="muted">
+              Your latest simulated transactions
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        <div
+          id="orders"
+          class="orders-list"
+        ></div>
+
+
+      </section>
 
 
     </section>
@@ -624,7 +899,10 @@
          MARKET CONTROLS
     ====================================================== -->
 
-    <section class="section">
+    <section
+      id="controlsSection"
+      class="section"
+    >
 
 
       <div class="section-title">
@@ -640,21 +918,24 @@
       </div>
 
 
+
       <div class="portfolio-card">
 
 
         <div class="muted">
 
-          Temporary controls for this educational
-          simulation.
+          Educational market simulation controls.
+          These affect simulated prices only.
 
         </div>
+
 
 
         <div class="stock-actions">
 
 
           <button
+            type="button"
             class="btn buy-btn"
             onclick="marketMove('UP')"
           >
@@ -662,7 +943,9 @@
           </button>
 
 
+
           <button
+            type="button"
             class="btn sell-btn"
             onclick="marketMove('DOWN')"
           >
@@ -670,7 +953,9 @@
           </button>
 
 
+
           <button
+            type="button"
             class="btn volatile-btn"
             onclick="marketMove('VOLATILE')"
           >
@@ -681,7 +966,9 @@
         </div>
 
 
+
         <button
+          type="button"
           class="reset-button"
           onclick="resetSimulation()"
         >
@@ -723,6 +1010,9 @@
 <div
   id="orderModal"
   class="modal-overlay"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="orderSymbol"
 >
 
 
@@ -738,7 +1028,9 @@
           PLACE ORDER
         </div>
 
-        <h2 id="orderSymbol"></h2>
+        <h2 id="orderSymbol">
+          Stock
+        </h2>
 
       </div>
 
@@ -747,6 +1039,7 @@
         class="modal-close"
         type="button"
         onclick="closeOrder()"
+        aria-label="Close"
       >
         ×
       </button>
@@ -758,7 +1051,7 @@
 
     <div class="form-group">
 
-      <label>
+      <label for="orderSide">
         Order side
       </label>
 
@@ -780,7 +1073,7 @@
 
     <div class="form-group">
 
-      <label>
+      <label for="orderQuantity">
         Quantity
       </label>
 
@@ -798,7 +1091,7 @@
 
     <div class="form-group">
 
-      <label>
+      <label for="orderPrice">
         Simulated execution price
       </label>
 
@@ -858,62 +1151,64 @@
 
 
 <!-- =========================================================
-     BOTTOM NAV
+     BOTTOM NAVIGATION
 ========================================================= -->
 
-<nav class="bottom-nav">
+<nav
+  class="bottom-nav"
+  aria-label="Main navigation"
+>
 
 
   <button
     class="nav-btn active"
     type="button"
+    data-view="home"
   >
 
-    <span>
-      ⌂
-    </span>
+    <span>⌂</span>
 
     Home
 
   </button>
 
 
+
   <button
     class="nav-btn"
     type="button"
+    data-view="market"
   >
 
-    <span>
-      ◈
-    </span>
+    <span>◈</span>
 
     Market
 
   </button>
 
 
+
   <button
     class="nav-btn"
     type="button"
+    data-view="portfolio"
   >
 
-    <span>
-      ▣
-    </span>
+    <span>▣</span>
 
     Portfolio
 
   </button>
 
 
+
   <button
     class="nav-btn"
     type="button"
+    data-view="orders"
   >
 
-    <span>
-      ☷
-    </span>
+    <span>☷</span>
 
     Orders
 
@@ -930,9 +1225,11 @@
 
 <script src="data.js"></script>
 
+<script src="navigation.js"></script>
+
 <script src="app.js"></script>
 
 
 </body>
 
-</html>
+            </html>
