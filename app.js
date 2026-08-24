@@ -2397,3 +2397,500 @@ function renderOrders() {
   );
 
        }
+       /* =========================================================
+   25. REAL-TIME MARKET DATA INTERFACE
+   ---------------------------------------------------------
+   IMPORTANT:
+
+   This does NOT pretend to provide exchange real-time data.
+
+   It creates the interface required for a future legitimate
+   market-data provider.
+
+   The rest of TradeSim does not need to know whether data
+   comes from:
+   • simulation
+   • polling
+   • WebSocket
+   • another legal provider
+========================================================= */
+
+const MarketDataEngine = {
+
+  provider: null,
+
+  connected: false,
+
+  async connect(provider) {
+
+    if (
+      !provider ||
+      typeof provider.connect !== "function"
+    ) {
+
+      console.warn(
+        "Invalid market data provider."
+      );
+
+      return false;
+
+    }
+
+
+    this.provider =
+      provider;
+
+
+    try {
+
+      await provider.connect({
+
+        onSnapshot:
+          stocks =>
+            this.applySnapshot(stocks),
+
+        onPrice:
+          update =>
+            this.applyPriceUpdate(update),
+
+        onStatus:
+          status =>
+            this.handleStatus(status),
+
+        onError:
+          error =>
+            console.error(
+              "Market provider error:",
+              error
+            )
+
+      });
+
+
+      this.connected =
+        true;
+
+
+      TradeSimState.market.connected =
+        true;
+
+
+      TradeSimState.market.source =
+        provider.name ||
+        "unknown";
+
+
+      return true;
+
+    } catch (error) {
+
+      console.error(
+        "MARKET DATA CONNECTION ERROR:",
+        error
+      );
+
+
+      this.connected =
+        false;
+
+
+      TradeSimState.market.connected =
+        false;
+
+
+      return false;
+
+    }
+
+  },
+
+
+  disconnect() {
+
+    if (
+      this.provider &&
+      typeof this.provider.disconnect ===
+        "function"
+    ) {
+
+      this.provider.disconnect();
+
+    }
+
+
+    this.connected =
+      false;
+
+
+    TradeSimState.market.connected =
+      false;
+
+  },
+
+
+  applySnapshot(stocks) {
+
+    if (
+      !Array.isArray(stocks)
+    ) {
+
+      return;
+
+    }
+
+
+    TradeSimState.stocks =
+      stocks;
+
+
+    TradeSimState.market.lastUpdate =
+      Date.now();
+
+
+    renderDashboard();
+
+
+    TradeSimEvents.emit(
+      "market:snapshot",
+      stocks
+    );
+
+  },
+
+
+  applyPriceUpdate(update) {
+
+    if (
+      !update ||
+      !update.symbol
+    ) {
+
+      return;
+
+    }
+
+
+    const stock =
+      getStock(
+        update.symbol
+      );
+
+
+    if (!stock) {
+
+      return;
+
+    }
+
+
+    if (
+      update.price !== undefined
+    ) {
+
+      stock.price =
+        number(update.price);
+
+    }
+
+
+    if (
+      update.previousClose !==
+      undefined
+    ) {
+
+      stock.previousClose =
+        number(
+          update.previousClose
+        );
+
+    }
+
+
+    TradeSimState.market.lastUpdate =
+      Date.now();
+
+
+    renderAccount();
+
+    renderMarket();
+
+    renderPositions();
+
+
+    TradeSimEvents.emit(
+      "market:price",
+      update
+    );
+
+  },
+
+
+  handleStatus(status) {
+
+    TradeSimState.market.connected =
+      Boolean(
+        status?.connected
+      );
+
+
+    TradeSimEvents.emit(
+      "market:status",
+      status
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   26. SAFE HTML HELPERS
+========================================================= */
+
+function escapeHTML(value) {
+
+  return String(value)
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
+
+}
+
+
+function escapeAttribute(value) {
+
+  return String(value)
+    .replace(
+      /\\/g,
+      "\\\\"
+    )
+    .replace(
+      /'/g,
+      "\\'"
+    );
+
+}
+
+
+/* =========================================================
+   27. FUTURE FEATURE API
+   ---------------------------------------------------------
+   New feature modules can communicate with the application
+   through this interface instead of editing the core.
+========================================================= */
+
+window.TradeSimCore = {
+
+  config:
+    TradeSimConfig,
+
+  state:
+    TradeSimState,
+
+  events:
+    TradeSimEvents,
+
+  api:
+    TradeSimAPI,
+
+  market:
+    MarketDataEngine,
+
+  registerModule:
+    TradeSim.registerModule,
+
+  getModule:
+    TradeSim.getModule,
+
+  helpers: {
+
+    money,
+
+    number,
+
+    getStock,
+
+    getPosition
+
+  }
+
+};
+
+
+/* =========================================================
+   28. GLOBAL COMPATIBILITY
+   ---------------------------------------------------------
+   Existing HTML onclick handlers continue working.
+========================================================= */
+
+window.money =
+  money;
+
+window.getStock =
+  getStock;
+
+window.getPosition =
+  getPosition;
+
+window.calculatePortfolioValue =
+  calculatePortfolioValue;
+
+window.calculateUnrealizedPnl =
+  calculateUnrealizedPnl;
+
+window.calculateTotalPnl =
+  calculateTotalPnl;
+
+window.togglePassword =
+  togglePassword;
+
+window.switchAuthMode =
+  switchAuthMode;
+
+window.registerTrader =
+  registerTrader;
+
+window.loginTrader =
+  loginTrader;
+
+window.checkSession =
+  checkSession;
+
+window.showLoginScreen =
+  showLoginScreen;
+
+window.showTradingApp =
+  showTradingApp;
+
+window.logout =
+  logout;
+
+window.renderDashboard =
+  renderDashboard;
+
+window.renderMarket =
+  renderMarket;
+
+window.openOrder =
+  openOrder;
+
+window.closeOrder =
+  closeOrder;
+
+window.updateEstimate =
+  updateEstimate;
+
+window.executeOrder =
+  executeOrder;
+
+window.renderPositions =
+  renderPositions;
+
+window.renderOrders =
+  renderOrders;
+
+
+/* =========================================================
+   29. AUTOMATIC UI ESTIMATE EVENTS
+========================================================= */
+
+document.addEventListener(
+  "input",
+  event => {
+
+    if (
+      event.target?.id ===
+        "orderQuantity" ||
+      event.target?.id ===
+        "orderPrice"
+    ) {
+
+      updateEstimate();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   30. STARTUP
+========================================================= */
+
+async function bootTradeSim() {
+
+  try {
+
+    console.log(
+      "TradeSim starting..."
+    );
+
+
+    TradeSimEvents.emit(
+      "app:starting"
+    );
+
+
+    await checkSession();
+
+
+    TradeSimEvents.emit(
+      "app:ready"
+    );
+
+
+    console.log(
+      "TradeSim ready."
+    );
+
+  } catch (error) {
+
+    console.error(
+      "TradeSim startup error:",
+      error
+    );
+
+
+    showLoginScreen();
+
+  }
+
+}
+
+
+/* =========================================================
+   DOM READY
+========================================================= */
+
+if (
+  document.readyState ===
+  "loading"
+) {
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    bootTradeSim
+  );
+
+} else {
+
+  bootTradeSim();
+
+}
