@@ -472,17 +472,24 @@ async function registerTrader(event) {
       await response.json();
 
 
-    if (!response.ok) {
+   if (!response.ok) {
 
-      showMessage(
-        "registerMessage",
-        data.error ||
-        "Registration failed."
-      );
+  const errorMessage =
+    data.details
+      ? `${data.error || "Registration failed."} ${data.details}`
+      : (
+          data.error ||
+          "Registration failed."
+        );
 
-      return;
+  showMessage(
+    "registerMessage",
+    errorMessage
+  );
 
-    }
+  return;
+
+   }    
 
 
     showMessage(
