@@ -1,56 +1,413 @@
-let state = {
-  cash: 100000,
-  startingCapital: 100000,
-  realizedPnl: 0,
-  stocks: [],
-  positions: {},
-  orders: []
-};
+/* =========================================================
+   TRADESIM — MODULAR CORE
+   ---------------------------------------------------------
+   PURPOSE:
+   • Stable application bootstrap
+   • Central state management
+   • Authentication
+   • Portfolio
+   • Orders
+   • Market rendering
+   • Module/extension support
+   • Future real-time market-data compatibility
 
-let currentUser = null;
+   IMPORTANT:
+   This file is intentionally designed as the CORE.
+   Future features should preferably be added as modules,
+   services or providers instead of repeatedly rewriting
+   this file.
+========================================================= */
+
+"use strict";
 
 
 /* =========================================================
-   HELPERS
+   1. APPLICATION CONFIG
+========================================================= */
+
+const TradeSimConfig = Object.freeze({
+
+  api: {
+    portfolio: "/api/portfolio",
+    register: "/api/auth/register",
+    login: "/api/auth/login",
+    logout: "/api/auth/logout",
+    session: "/api/auth/me",
+    order: "/api/order"
+  },
+
+  defaults: {
+    startingCapital: 100000
+  },
+
+  market: {
+    refreshInterval: 1000
+  },
+
+  debug: true
+
+});
+
+
+/* =========================================================
+   2. CENTRAL APPLICATION STATE
+========================================================= */
+
+const TradeSimState = {
+
+  cash: TradeSimConfig.defaults.startingCapital,
+
+  startingCapital:
+    TradeSimConfig.defaults.startingCapital,
+
+  realizedPnl: 0,
+
+  stocks: [],
+
+  positions: {},
+
+  orders: [],
+
+  currentUser: null,
+
+  market: {
+
+    connected: false,
+
+    source: "simulation",
+
+    lastUpdate: null,
+
+    updating: false
+
+  },
+
+  ui: {
+
+    currentScreen: "auth",
+
+    currentOrder: null
+
+  },
+
+  modules: {}
+
+};
+
+
+/* =========================================================
+   3. STATE ACCESS
+========================================================= */
+
+function getState() {
+
+  return TradeSimState;
+
+}
+
+
+function resetState() {
+
+  TradeSimState.cash =
+    TradeSimConfig.defaults.startingCapital;
+
+  TradeSimState.startingCapital =
+    TradeSimConfig.defaults.startingCapital;
+
+  TradeSimState.realizedPnl = 0;
+
+  TradeSimState.stocks = [];
+
+  TradeSimState.positions = {};
+
+  TradeSimState.orders = [];
+
+  TradeSimState.currentUser = null;
+
+  TradeSimState.market = {
+
+    connected: false,
+
+    source: "simulation",
+
+    lastUpdate: null,
+
+    updating: false
+
+  };
+
+  TradeSimState.ui = {
+
+    currentScreen: "auth",
+
+    currentOrder: null
+
+  };
+
+}
+
+
+/* =========================================================
+   4. EVENT BUS
+   ---------------------------------------------------------
+   Modules can communicate without directly modifying
+   each other's code.
+========================================================= */
+
+const TradeSimEvents = {
+
+  listeners: {},
+
+
+  on(eventName, callback) {
+
+    if (
+      typeof callback !== "function"
+    ) {
+      return () => {};
+    }
+
+
+    if (
+      !Array.isArray(
+        this.listeners[eventName]
+      )
+    ) {
+
+      this.listeners[eventName] = [];
+
+    }
+
+
+    this.listeners[eventName].push(
+      callback
+    );
+
+
+    return () => {
+
+      this.listeners[eventName] =
+        this.listeners[eventName]
+          .filter(
+            listener =>
+              listener !== callback
+          );
+
+    };
+
+  },
+
+
+  emit(eventName, payload) {
+
+    const listeners =
+      this.listeners[eventName] || [];
+
+
+    listeners.forEach(
+      listener => {
+
+        try {
+
+          listener(payload);
+
+        } catch (error) {
+
+          console.error(
+            `TradeSim event error [${eventName}]`,
+            error
+          );
+
+        }
+
+      }
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   5. MODULE REGISTRY
+   ---------------------------------------------------------
+   Future modules can register themselves here.
+
+   Example future:
+   TradeSim.registerModule("watchlist", {...});
+========================================================= */
+
+const TradeSim = {
+
+  registerModule(name, module) {
+
+    if (
+      !name ||
+      !module
+    ) {
+
+      console.warn(
+        "Invalid TradeSim module."
+      );
+
+      return;
+
+    }
+
+
+    if (
+      TradeSimState.modules[name]
+    ) {
+
+      console.warn(
+        `Module already registered: ${name}`
+      );
+
+      return;
+
+    }
+
+
+    TradeSimState.modules[name] =
+      module;
+
+
+    if (
+      typeof module.init === "function"
+    ) {
+
+      try {
+
+        module.init({
+          state: TradeSimState,
+          events: TradeSimEvents,
+          config: TradeSimConfig
+        });
+
+      } catch (error) {
+
+        console.error(
+          `Module initialization failed: ${name}`,
+          error
+        );
+
+      }
+
+    }
+
+
+    TradeSimEvents.emit(
+      "module:registered",
+      {
+        name,
+        module
+      }
+    );
+
+  },
+
+
+  getModule(name) {
+
+    return TradeSimState.modules[name] || null;
+
+  }
+
+};
+
+
+/* =========================================================
+   6. GENERAL HELPERS
 ========================================================= */
 
 function money(value) {
-  return "₹" + Number(value).toLocaleString("en-IN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+
+  const number =
+    Number(value);
+
+
+  if (!Number.isFinite(number)) {
+
+    return "₹0.00";
+
+  }
+
+
+  return "₹" +
+    number.toLocaleString(
+      "en-IN",
+      {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }
+    );
+
+}
+
+
+function number(value) {
+
+  const result =
+    Number(value);
+
+
+  return Number.isFinite(result)
+    ? result
+    : 0;
+
 }
 
 
 function getStock(symbol) {
-  return state.stocks.find(
-    stock => stock.symbol === symbol
-  );
+
+  return TradeSimState.stocks.find(
+    stock =>
+      stock.symbol === symbol
+  ) || null;
+
 }
 
 
 function getPosition(symbol) {
-  return state.positions[symbol] || null;
+
+  return (
+    TradeSimState.positions[symbol]
+    || null
+  );
+
 }
 
 
+/* =========================================================
+   7. PORTFOLIO CALCULATIONS
+========================================================= */
+
 function calculatePortfolioValue() {
 
-  let value = Number(state.cash);
+  let value =
+    number(TradeSimState.cash);
 
-  Object.values(state.positions).forEach(position => {
 
-    const stock = getStock(position.symbol);
+  Object.values(
+    TradeSimState.positions
+  ).forEach(position => {
 
-    if (stock) {
-      value +=
-        Number(position.quantity) *
-        Number(stock.price);
-    }
+    const stock =
+      getStock(position.symbol);
+
+
+    if (!stock) return;
+
+
+    value +=
+      number(position.quantity) *
+      number(stock.price);
 
   });
 
+
   return value;
+
 }
 
 
@@ -58,31 +415,37 @@ function calculateUnrealizedPnl() {
 
   let pnl = 0;
 
-  Object.values(state.positions).forEach(position => {
 
-    const stock = getStock(position.symbol);
+  Object.values(
+    TradeSimState.positions
+  ).forEach(position => {
 
-    if (stock) {
+    const stock =
+      getStock(position.symbol);
 
-      pnl +=
-        (
-          Number(stock.price) -
-          Number(position.averagePrice)
-        ) *
-        Number(position.quantity);
 
-    }
+    if (!stock) return;
+
+
+    pnl +=
+      (
+        number(stock.price) -
+        number(position.averagePrice)
+      ) *
+      number(position.quantity);
 
   });
 
+
   return pnl;
+
 }
 
 
 function calculateTotalPnl() {
 
   return (
-    Number(state.realizedPnl) +
+    number(TradeSimState.realizedPnl) +
     calculateUnrealizedPnl()
   );
 
@@ -90,81 +453,212 @@ function calculateTotalPnl() {
 
 
 /* =========================================================
-   LOAD PORTFOLIO FROM D1
+   8. API CLIENT
+========================================================= */
+
+const TradeSimAPI = {
+
+  async request(
+    url,
+    options = {}
+  ) {
+
+    const response =
+      await fetch(
+        url,
+        {
+          credentials:
+            "same-origin",
+
+          cache:
+            "no-store",
+
+          ...options,
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            ...(options.headers || {})
+          }
+
+        }
+      );
+
+
+    let data = {};
+
+
+    try {
+
+      data =
+        await response.json();
+
+    } catch {
+
+      data = {};
+
+    }
+
+
+    if (!response.ok) {
+
+      const error =
+        new Error(
+          data.error ||
+          "Request failed."
+        );
+
+
+      error.status =
+        response.status;
+
+
+      error.data =
+        data;
+
+
+      throw error;
+
+    }
+
+
+    return data;
+
+  },
+
+
+  get(url) {
+
+    return this.request(
+      url,
+      {
+        method: "GET"
+      }
+    );
+
+  },
+
+
+  post(
+    url,
+    body
+  ) {
+
+    return this.request(
+      url,
+      {
+        method: "POST",
+
+        body:
+          JSON.stringify(body)
+      }
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   9. PORTFOLIO LOADING
 ========================================================= */
 
 async function loadPortfolio() {
 
   try {
 
-    const response = await fetch(
-      "/api/portfolio",
-      {
-        method: "GET",
-        credentials: "same-origin",
-        cache: "no-store"
-      }
-    );
+    const data =
+      await TradeSimAPI.get(
+        TradeSimConfig.api.portfolio
+      );
 
 
-    const data = await response.json();
-
-
-    if (!response.ok) {
+    if (!data.account) {
 
       throw new Error(
-        data.error ||
-        "Unable to load portfolio."
+        "Invalid portfolio response."
       );
 
     }
 
 
-    state.cash =
-      Number(data.account.cash);
-
-    state.startingCapital =
-      Number(data.account.startingCapital);
-
-    state.realizedPnl =
-      Number(data.account.realizedPnl);
+    TradeSimState.cash =
+      number(
+        data.account.cash
+      );
 
 
-    state.stocks =
+    TradeSimState.startingCapital =
+      number(
+        data.account.startingCapital
+      );
+
+
+    TradeSimState.realizedPnl =
+      number(
+        data.account.realizedPnl
+      );
+
+
+    TradeSimState.stocks =
       Array.isArray(data.stocks)
         ? data.stocks
         : [];
 
 
-    state.positions = {};
+    TradeSimState.positions = {};
 
 
-    if (Array.isArray(data.positions)) {
+    if (
+      Array.isArray(data.positions)
+    ) {
 
-      data.positions.forEach(position => {
+      data.positions.forEach(
+        position => {
 
-        state.positions[position.symbol] = {
+          TradeSimState.positions[
+            position.symbol
+          ] = {
 
-          symbol:
-            position.symbol,
+            symbol:
+              position.symbol,
 
-          quantity:
-            Number(position.quantity),
+            quantity:
+              number(
+                position.quantity
+              ),
 
-          averagePrice:
-            Number(position.averagePrice)
+            averagePrice:
+              number(
+                position.averagePrice
+              )
 
-        };
+          };
 
-      });
+        }
+      );
 
     }
 
 
-    state.orders =
+    TradeSimState.orders =
       Array.isArray(data.orders)
         ? data.orders
         : [];
+
+
+    TradeSimState.market.connected =
+      true;
+
+    TradeSimState.market.lastUpdate =
+      Date.now();
+
+
+    TradeSimEvents.emit(
+      "portfolio:updated",
+      TradeSimState
+    );
 
 
     return true;
@@ -176,10 +670,16 @@ async function loadPortfolio() {
       error
     );
 
+
+    TradeSimState.market.connected =
+      false;
+
+
     alert(
       error.message ||
       "Unable to load your trading account."
     );
+
 
     return false;
 
@@ -189,18 +689,26 @@ async function loadPortfolio() {
 
 
 /* =========================================================
-   PASSWORD SHOW / HIDE
+   10. AUTH — PASSWORD
 ========================================================= */
 
-function togglePassword(inputId, button) {
+function togglePassword(
+  inputId,
+  button
+) {
 
   const input =
-    document.getElementById(inputId);
+    document.getElementById(
+      inputId
+    );
+
 
   if (!input) return;
 
 
-  if (input.type === "password") {
+  if (
+    input.type === "password"
+  ) {
 
     input.type = "text";
 
@@ -220,87 +728,7 @@ function togglePassword(inputId, button) {
 
 
 /* =========================================================
-   AUTH MODE SWITCH
-========================================================= */
-
-function switchAuthMode() {
-
-  const loginForm =
-    document.getElementById("loginForm");
-
-  const registerForm =
-    document.getElementById("registerForm");
-
-  const authTitle =
-    document.getElementById("authTitle");
-
-  const authSubtitle =
-    document.getElementById("authSubtitle");
-
-  const switchText =
-    document.getElementById("switchText");
-
-  const switchAuth =
-    document.getElementById("switchAuth");
-
-
-  if (
-    !loginForm ||
-    !registerForm
-  ) return;
-
-
-  const registerVisible =
-    !registerForm.classList.contains("hidden");
-
-
-  if (registerVisible) {
-
-    loginForm.classList.remove("hidden");
-    registerForm.classList.add("hidden");
-
-    loginForm.style.display = "block";
-    registerForm.style.display = "none";
-
-    authTitle.textContent =
-      "Welcome back";
-
-    authSubtitle.textContent =
-      "Sign in to continue your trading simulation.";
-
-    switchText.textContent =
-      "New to TradeSim?";
-
-    switchAuth.textContent =
-      "Create account";
-
-  } else {
-
-    loginForm.classList.add("hidden");
-    registerForm.classList.remove("hidden");
-
-    loginForm.style.display = "none";
-    registerForm.style.display = "block";
-
-    authTitle.textContent =
-      "Create your trader account";
-
-    authSubtitle.textContent =
-      "Start with ₹1,00,000 simulated capital.";
-
-    switchText.textContent =
-      "Already have an account?";
-
-    switchAuth.textContent =
-      "Login";
-
-  }
-
-}
-
-
-/* =========================================================
-   AUTH MESSAGES
+   11. AUTH — MESSAGES
 ========================================================= */
 
 function showMessage(
@@ -325,9 +753,14 @@ function showMessage(
   element.textContent =
     message;
 
+
   element.className =
     "auth-message" +
-    (success ? " success" : "");
+    (
+      success
+        ? " success"
+        : ""
+    );
 
 }
 
@@ -337,9 +770,13 @@ function clearMessage(id) {
   const element =
     document.getElementById(id);
 
+
   if (!element) return;
 
-  element.textContent = "";
+
+  element.textContent =
+    "";
+
 
   element.className =
     "auth-message";
@@ -348,32 +785,244 @@ function clearMessage(id) {
 
 
 /* =========================================================
-   REGISTER
+   12. AUTH MODE
+========================================================= */
+
+function showLogin() {
+
+  const loginForm =
+    document.getElementById(
+      "loginForm"
+    );
+
+
+  const registerForm =
+    document.getElementById(
+      "registerForm"
+    );
+
+
+  if (loginForm) {
+
+    loginForm.classList.remove(
+      "hidden"
+    );
+
+    loginForm.style.display =
+      "block";
+
+  }
+
+
+  if (registerForm) {
+
+    registerForm.classList.add(
+      "hidden"
+    );
+
+    registerForm.style.display =
+      "none";
+
+  }
+
+
+  const title =
+    document.getElementById(
+      "authTitle"
+    );
+
+
+  const subtitle =
+    document.getElementById(
+      "authSubtitle"
+    );
+
+
+  const switchText =
+    document.getElementById(
+      "switchText"
+    );
+
+
+  const switchAuth =
+    document.getElementById(
+      "switchAuth"
+    );
+
+
+  if (title) {
+
+    title.textContent =
+      "Welcome back";
+
+  }
+
+
+  if (subtitle) {
+
+    subtitle.textContent =
+      "Sign in to continue your trading simulation.";
+
+  }
+
+
+  if (switchText) {
+
+    switchText.textContent =
+      "New to TradeSim?";
+
+  }
+
+
+  if (switchAuth) {
+
+    switchAuth.textContent =
+      "Create account";
+
+  }
+
+}
+
+
+function switchAuthMode() {
+
+  const registerForm =
+    document.getElementById(
+      "registerForm"
+    );
+
+
+  if (!registerForm) return;
+
+
+  const registerVisible =
+    !registerForm.classList.contains(
+      "hidden"
+    );
+
+
+  if (registerVisible) {
+
+    showLogin();
+
+    return;
+
+  }
+
+
+  const loginForm =
+    document.getElementById(
+      "loginForm"
+    );
+
+
+  if (loginForm) {
+
+    loginForm.classList.add(
+      "hidden"
+    );
+
+    loginForm.style.display =
+      "none";
+
+  }
+
+
+  registerForm.classList.remove(
+    "hidden"
+  );
+
+  registerForm.style.display =
+    "block";
+
+
+  const title =
+    document.getElementById(
+      "authTitle"
+    );
+
+
+  const subtitle =
+    document.getElementById(
+      "authSubtitle"
+    );
+
+
+  const switchText =
+    document.getElementById(
+      "switchText"
+    );
+
+
+  const switchAuth =
+    document.getElementById(
+      "switchAuth"
+    );
+
+
+  if (title) {
+
+    title.textContent =
+      "Create your trader account";
+
+  }
+
+
+  if (subtitle) {
+
+    subtitle.textContent =
+      "Start with ₹1,00,000 simulated capital.";
+
+  }
+
+
+  if (switchText) {
+
+    switchText.textContent =
+      "Already have an account?";
+
+  }
+
+
+  if (switchAuth) {
+
+    switchAuth.textContent =
+      "Login";
+
+  }
+
+}
+
+
+/* =========================================================
+   13. REGISTER
 ========================================================= */
 
 async function registerTrader(event) {
 
   if (event) {
+
     event.preventDefault();
+
   }
 
 
   const username =
     document.getElementById(
       "registerUsername"
-    ).value.trim();
+    )?.value.trim();
 
 
   const password =
     document.getElementById(
       "registerPassword"
-    ).value;
+    )?.value;
 
 
   const confirmPassword =
     document.getElementById(
       "registerConfirmPassword"
-    ).value;
+    )?.value;
 
 
   clearMessage(
@@ -394,7 +1043,9 @@ async function registerTrader(event) {
 
 
   if (
-    !/^[A-Za-z0-9_]{3,30}$/.test(username)
+    !/^[A-Za-z0-9_]{3,30}$/.test(
+      username
+    )
   ) {
 
     showMessage(
@@ -419,7 +1070,9 @@ async function registerTrader(event) {
   }
 
 
-  if (password !== confirmPassword) {
+  if (
+    password !== confirmPassword
+  ) {
 
     showMessage(
       "registerMessage",
@@ -437,59 +1090,25 @@ async function registerTrader(event) {
     );
 
 
-  button.disabled = true;
+  if (button) {
 
-  button.innerHTML =
-    "<span>Creating account...</span>";
+    button.disabled = true;
+
+    button.innerHTML =
+      "<span>Creating account...</span>";
+
+  }
 
 
   try {
 
-    const response =
-      await fetch(
-        "/api/auth/register",
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          credentials:
-            "same-origin",
-
-          body:
-            JSON.stringify({
-              username,
-              password
-            })
-        }
-      );
-
-
-    const data =
-      await response.json();
-
-
-   if (!response.ok) {
-
-  const errorMessage =
-    data.details
-      ? `${data.error || "Registration failed."} ${data.details}`
-      : (
-          data.error ||
-          "Registration failed."
-        );
-
-  showMessage(
-    "registerMessage",
-    errorMessage
-  );
-
-  return;
-
-   }    
+    await TradeSimAPI.post(
+      TradeSimConfig.api.register,
+      {
+        username,
+        password
+      }
+    );
 
 
     showMessage(
@@ -499,50 +1118,90 @@ async function registerTrader(event) {
     );
 
 
-    document.getElementById(
-      "registerPassword"
-    ).value = "";
+    const passwordInput =
+      document.getElementById(
+        "registerPassword"
+      );
 
 
-    document.getElementById(
-      "registerConfirmPassword"
-    ).value = "";
+    const confirmInput =
+      document.getElementById(
+        "registerConfirmPassword"
+      );
 
 
-    setTimeout(() => {
+    if (passwordInput) {
 
-      showLogin();
+      passwordInput.value =
+        "";
 
-      const loginUsername =
-        document.getElementById(
-          "loginUsername"
-        );
+    }
 
-      if (loginUsername) {
 
-        loginUsername.value =
-          username;
+    if (confirmInput) {
 
-      }
+      confirmInput.value =
+        "";
 
-    }, 1200);
+    }
+
+
+    setTimeout(
+      () => {
+
+        showLogin();
+
+
+        const loginUsername =
+          document.getElementById(
+            "loginUsername"
+          );
+
+
+        if (loginUsername) {
+
+          loginUsername.value =
+            username;
+
+        }
+
+      },
+      1000
+    );
 
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "REGISTER ERROR:",
+      error
+    );
+
+
+    const message =
+      error.data?.details
+        ? `${error.data.error || "Registration failed."} ${error.data.details}`
+        : (
+            error.message ||
+            "Registration failed."
+          );
+
 
     showMessage(
       "registerMessage",
-      "Network error. Please try again."
+      message
     );
 
   } finally {
 
-    button.disabled = false;
+    if (button) {
 
-    button.innerHTML =
-      "<span>Create Trader Account</span><span>→</span>";
+      button.disabled = false;
+
+      button.innerHTML =
+        "<span>Create Trader Account</span><span>→</span>";
+
+    }
 
   }
 
@@ -550,26 +1209,28 @@ async function registerTrader(event) {
 
 
 /* =========================================================
-   LOGIN
+   14. LOGIN
 ========================================================= */
 
 async function loginTrader(event) {
 
   if (event) {
+
     event.preventDefault();
+
   }
 
 
   const username =
     document.getElementById(
       "loginUsername"
-    ).value.trim();
+    )?.value.trim();
 
 
   const password =
     document.getElementById(
       "loginPassword"
-    ).value;
+    )?.value;
 
 
   clearMessage(
@@ -595,76 +1256,65 @@ async function loginTrader(event) {
     );
 
 
-  button.disabled = true;
+  if (button) {
 
-  button.innerHTML =
-    "<span>Logging in...</span>";
+    button.disabled = true;
+
+    button.innerHTML =
+      "<span>Logging in...</span>";
+
+  }
 
 
   try {
 
-    const response =
-      await fetch(
-        "/api/auth/login",
+    const data =
+      await TradeSimAPI.post(
+        TradeSimConfig.api.login,
         {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          credentials:
-            "same-origin",
-
-          body:
-            JSON.stringify({
-              username,
-              password
-            })
+          username,
+          password
         }
       );
 
 
-    const data =
-      await response.json();
-
-
-    if (!response.ok) {
-
-      showMessage(
-        "loginMessage",
-        data.error ||
-        "Login failed."
-      );
-
-      return;
-
-    }
-
-
-    currentUser =
+    TradeSimState.currentUser =
       data.user;
 
 
-    showTradingApp();
+    TradeSimEvents.emit(
+      "auth:login",
+      data.user
+    );
+
+
+    await showTradingApp();
 
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "LOGIN ERROR:",
+      error
+    );
+
 
     showMessage(
       "loginMessage",
-      "Network error. Please try again."
+      error.message ||
+      "Login failed."
     );
 
   } finally {
 
-    button.disabled = false;
+    if (button) {
 
-    button.innerHTML =
-      "<span>Login to TradeSim</span><span>→</span>";
+      button.disabled = false;
+
+      button.innerHTML =
+        "<span>Login to TradeSim</span><span>→</span>";
+
+    }
 
   }
 
@@ -672,39 +1322,17 @@ async function loginTrader(event) {
 
 
 /* =========================================================
-   SESSION VERIFICATION
+   15. SESSION
 ========================================================= */
 
 async function checkSession() {
 
   try {
 
-    const response =
-      await fetch(
-        "/api/auth/me",
-        {
-          method: "GET",
-
-          credentials:
-            "same-origin",
-
-          cache:
-            "no-store"
-        }
-      );
-
-
-    if (!response.ok) {
-
-      showLoginScreen();
-
-      return;
-
-    }
-
-
     const data =
-      await response.json();
+      await TradeSimAPI.get(
+        TradeSimConfig.api.session
+      );
 
 
     if (
@@ -719,16 +1347,20 @@ async function checkSession() {
     }
 
 
-    currentUser =
+    TradeSimState.currentUser =
       data.user;
 
 
-    showTradingApp();
+    await showTradingApp();
 
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "SESSION ERROR:",
+      error
+    );
+
 
     showLoginScreen();
 
@@ -738,12 +1370,17 @@ async function checkSession() {
 
 
 /* =========================================================
-   SHOW LOGIN SCREEN
+   16. SCREEN MANAGEMENT
 ========================================================= */
 
 function showLoginScreen() {
 
-  currentUser = null;
+  TradeSimState.currentUser =
+    null;
+
+
+  TradeSimState.ui.currentScreen =
+    "auth";
 
 
   const authScreen =
@@ -787,10 +1424,6 @@ function showLoginScreen() {
 }
 
 
-/* =========================================================
-   SHOW TRADING APP
-========================================================= */
-
 async function showTradingApp() {
 
   const authScreen =
@@ -829,6 +1462,10 @@ async function showTradingApp() {
   }
 
 
+  TradeSimState.ui.currentScreen =
+    "app";
+
+
   const welcomeUser =
     document.getElementById(
       "welcomeUser"
@@ -837,12 +1474,12 @@ async function showTradingApp() {
 
   if (
     welcomeUser &&
-    currentUser
+    TradeSimState.currentUser
   ) {
 
     welcomeUser.textContent =
       "Trader · " +
-      currentUser.username;
+      TradeSimState.currentUser.username;
 
   }
 
@@ -852,7 +1489,9 @@ async function showTradingApp() {
 
 
   if (!loaded) {
+
     return;
+
   }
 
 
@@ -862,982 +1501,19 @@ async function showTradingApp() {
 
 
 /* =========================================================
-   LOGIN VIEW
-========================================================= */
-
-function showLogin() {
-
-  const loginForm =
-    document.getElementById(
-      "loginForm"
-    );
-
-
-  const registerForm =
-    document.getElementById(
-      "registerForm"
-    );
-
-
-  const authTitle =
-    document.getElementById(
-      "authTitle"
-    );
-
-
-  const authSubtitle =
-    document.getElementById(
-      "authSubtitle"
-    );
-
-
-  const switchText =
-    document.getElementById(
-      "switchText"
-    );
-
-
-  const switchAuth =
-    document.getElementById(
-      "switchAuth"
-    );
-
-
-  if (loginForm) {
-
-    loginForm.classList.remove(
-      "hidden"
-    );
-
-    loginForm.style.display =
-      "block";
-
-  }
-
-
-  if (registerForm) {
-
-    registerForm.classList.add(
-      "hidden"
-    );
-
-    registerForm.style.display =
-      "none";
-
-  }
-
-
-  if (authTitle) {
-
-    authTitle.textContent =
-      "Welcome back";
-
-  }
-
-
-  if (authSubtitle) {
-
-    authSubtitle.textContent =
-      "Sign in to continue your trading simulation.";
-
-  }
-
-
-  if (switchText) {
-
-    switchText.textContent =
-      "New to TradeSim?";
-
-  }
-
-
-  if (switchAuth) {
-
-    switchAuth.textContent =
-      "Create account";
-
-  }
-
-}
-
-
-/* =========================================================
-   LOGOUT
+   17. LOGOUT
 ========================================================= */
 
 async function logout() {
 
   try {
 
-    await fetch(
-      "/api/auth/logout",
-      {
-        method: "POST",
-
-        credentials:
-          "same-origin"
-      }
+    await TradeSimAPI.post(
+      TradeSimConfig.api.logout,
+      {}
     );
-
-  } catch (error) {
-
-    console.error(error);
-
-  }
-
-
-  currentUser = null;
-
-
-  state = {
-    cash: 100000,
-    startingCapital: 100000,
-    realizedPnl: 0,
-    stocks: [],
-    positions: {},
-    orders: []
-  };
-
-
-  showLoginScreen();
-
-}
-
-
-/* =========================================================
-   DASHBOARD
-========================================================= */
-
-function renderDashboard() {
-
-  const balanceElement =
-    document.getElementById(
-      "balance"
-    );
-
-
-  const portfolioElement =
-    document.getElementById(
-      "portfolio"
-    );
-
-
-  const unrealizedElement =
-    document.getElementById(
-      "unrealized"
-    );
-
-
-  const realizedElement =
-    document.getElementById(
-      "realized"
-    );
-
-
-  const totalPnlElement =
-    document.getElementById(
-      "totalPnl"
-    );
-
-
-  if (balanceElement) {
-
-    balanceElement.textContent =
-      money(state.cash);
-
-  }
-
-
-  if (portfolioElement) {
-
-    portfolioElement.textContent =
-      money(
-        calculatePortfolioValue()
-      );
-
-  }
-
-
-  if (unrealizedElement) {
-
-    const value =
-      calculateUnrealizedPnl();
-
-
-    unrealizedElement.textContent =
-      money(value);
-
-
-    unrealizedElement.className =
-      "stat-value " +
-      (
-        value >= 0
-          ? "green"
-          : "red"
-      );
-
-  }
-
-
-  if (realizedElement) {
-
-    const value =
-      Number(state.realizedPnl);
-
-
-    realizedElement.textContent =
-      money(value);
-
-
-    realizedElement.className =
-      "stat-value " +
-      (
-        value >= 0
-          ? "green"
-          : "red"
-      );
-
-  }
-
-
-  if (totalPnlElement) {
-
-    const value =
-      calculateTotalPnl();
-
-
-    totalPnlElement.textContent =
-      money(value);
-
-
-    totalPnlElement.className =
-      "stat-value " +
-      (
-        value >= 0
-          ? "green"
-          : "red"
-      );
-
-  }
-
-
-  renderMarket();
-  renderPositions();
-  renderOrders();
-
-}
-
-
-/* =========================================================
-   MARKET
-========================================================= */
-
-function renderMarket() {
-
-  const container =
-    document.getElementById(
-      "market"
-    );
-
-
-  if (!container) return;
-
-
-  container.innerHTML = "";
-
-
-  state.stocks.forEach(stock => {
-
-    const change =
-      Number(stock.price) -
-      Number(stock.previousClose);
-
-
-    const percent =
-      Number(stock.previousClose) !== 0
-        ? (
-            change /
-            Number(stock.previousClose)
-          ) * 100
-        : 0;
-
-
-    const card =
-      document.createElement(
-        "div"
-      );
-
-
-    card.className =
-      "stock-card";
-
-
-    card.innerHTML = `
-
-      <div class="stock-top">
-
-        <div>
-
-          <div class="stock-name">
-            ${stock.name}
-          </div>
-
-          <div class="symbol">
-            ${stock.symbol}
-          </div>
-
-        </div>
-
-        <div>
-
-          <div class="stock-price">
-            ${money(stock.price)}
-          </div>
-
-          <div class="stock-change ${
-            change >= 0
-              ? "green"
-              : "red"
-          }">
-
-            ${change >= 0 ? "+" : ""}
-            ${money(change)}
-            (${percent.toFixed(2)}%)
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <div class="stock-actions">
-
-        <button
-          class="btn buy-btn"
-          onclick="openOrder('${stock.symbol}', 'BUY')"
-        >
-          BUY
-        </button>
-
-        <button
-          class="btn sell-btn"
-          onclick="openOrder('${stock.symbol}', 'SELL')"
-        >
-          SELL
-        </button>
-
-      </div>
-
-    `;
-
-
-    container.appendChild(card);
-
-  });
-
-}
-
-
-/* =========================================================
-   ORDER MODAL
-========================================================= */
-
-function openOrder(symbol, side) {
-
-  const stock =
-    getStock(symbol);
-
-
-  if (!stock) {
-
-    alert("Stock not found.");
-
-    return;
-
-  }
-
-
-  const modal =
-    document.getElementById(
-      "orderModal"
-    );
-
-
-  if (!modal) return;
-
-
-  const symbolElement =
-    document.getElementById(
-      "orderSymbol"
-    );
-
-
-  const sideElement =
-    document.getElementById(
-      "orderSide"
-    );
-
-
-  const quantityElement =
-    document.getElementById(
-      "orderQuantity"
-    );
-
-
-  const priceElement =
-    document.getElementById(
-      "orderPrice"
-    );
-
-
-  if (symbolElement) {
-
-    symbolElement.textContent =
-      `${stock.name} (${stock.symbol})`;
-
-  }
-
-
-  if (sideElement) {
-
-    sideElement.value =
-      side;
-
-  }
-
-
-  if (quantityElement) {
-
-    quantityElement.value =
-      1;
-
-  }
-
-
-  if (priceElement) {
-
-    priceElement.value =
-      Number(stock.price).toFixed(2);
-
-  }
-
-
-  modal.classList.add(
-    "show"
-  );
-
-
-  updateEstimate();
-
-}
-
-
-function closeOrder() {
-
-  const modal =
-    document.getElementById(
-      "orderModal"
-    );
-
-
-  if (modal) {
-
-    modal.classList.remove(
-      "show"
-    );
-
-  }
-
-}
-
-
-function updateEstimate() {
-
-  const symbolText =
-    document.getElementById(
-      "orderSymbol"
-    )?.textContent || "";
-
-
-  const symbol =
-    symbolText.match(
-      /\((.*?)\)/
-    )?.[1];
-
-
-  if (!symbol) return;
-
-
-  const stock =
-    getStock(symbol);
-
-
-  if (!stock) return;
-
-
-  const quantity =
-    Number(
-      document.getElementById(
-        "orderQuantity"
-      )?.value
-    ) || 0;
-
-
-  const priceInput =
-    Number(
-      document.getElementById(
-        "orderPrice"
-      )?.value
-    );
-
-
-  const price =
-    Number.isFinite(priceInput) &&
-    priceInput > 0
-      ? priceInput
-      : Number(stock.price);
-
-
-  const value =
-    quantity * price;
-
-
-  const estimatedValue =
-    document.getElementById(
-      "estimatedValue"
-    );
-
-
-  if (estimatedValue) {
-
-    estimatedValue.textContent =
-      money(value);
-
-  }
-
-}
-
-
-
-/* =========================================================
-   EXECUTE ORDER — D1 API
-========================================================= */
-
-async function executeOrder() {
-
-  const symbolText =
-    document.getElementById(
-      "orderSymbol"
-    )?.textContent || "";
-
-
-  const symbol =
-    symbolText.match(
-      /\((.*?)\)/
-    )?.[1];
-
-
-  const side =
-    document.getElementById(
-      "orderSide"
-    )?.value;
-
-
-  const quantity =
-    Number(
-      document.getElementById(
-        "orderQuantity"
-      )?.value
-    );
-
-
-  const price =
-    Number(
-      document.getElementById(
-        "orderPrice"
-      )?.value
-    );
-
-
-  if (!symbol) {
-
-    alert("Stock not found.");
-
-    return;
-
-  }
-
-
-  if (
-    side !== "BUY" &&
-    side !== "SELL"
-  ) {
-
-    alert("Invalid order side.");
-
-    return;
-
-  }
-
-
-  if (
-    !Number.isInteger(quantity) ||
-    quantity <= 0
-  ) {
-
-    alert(
-      "Quantity must be a positive whole number."
-    );
-
-    return;
-
-  }
-
-
-  if (
-    !Number.isFinite(price) ||
-    price <= 0
-  ) {
-
-    alert(
-      "Enter a valid price."
-    );
-
-    return;
-
-  }
-
-
-  const button =
-    document.querySelector(
-      "#orderModal .confirm-order, #orderModal .buy-btn, #orderModal .sell-btn, #orderModal button[type='submit']"
-    );
-
-
-  if (button) {
-
-    button.disabled = true;
-
-  }
-
-
-  try {
-
-    const response =
-      await fetch(
-        "/api/order",
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          credentials:
-            "same-origin",
-
-          body:
-            JSON.stringify({
-              symbol,
-              side,
-              quantity,
-              price
-            })
-        }
-      );
-
-
-    const data =
-      await response.json();
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        data.error ||
-        "Unable to execute order."
-      );
-
-    }
-
-
-    closeOrder();
-
-
-    const loaded =
-      await loadPortfolio();
-
-
-    if (!loaded) {
-      return;
-    }
-
-
-    renderDashboard();
-
-
-    alert(
-      `${side} order executed successfully.\n\n` +
-      `${symbol} × ${quantity}\n` +
-      `Price: ${money(price)}\n` +
-      `Value: ${money(quantity * price)}`
-    );
-
 
   } catch (error) {
 
     console.error(
-      "EXECUTE ORDER ERROR:",
-      error
-    );
-
-
-    alert(
-      error.message ||
-      "Unable to execute order."
-    );
-
-  } finally {
-
-    if (button) {
-
-      button.disabled = false;
-
-    }
-
-  }
-
-}
-
-
-/* =========================================================
-   POSITIONS
-========================================================= */
-
-function renderPositions() {
-
-  const container =
-    document.getElementById(
-      "positions"
-    );
-
-
-  if (!container) return;
-
-
-  container.innerHTML = "";
-
-
-  const positions =
-    Object.values(state.positions);
-
-
-  if (positions.length === 0) {
-
-    container.innerHTML = `
-      <div class="empty-state">
-        No open positions.
-      </div>
-    `;
-
-    return;
-
-  }
-
-
-  positions.forEach(position => {
-
-    const stock =
-      getStock(position.symbol);
-
-
-    if (!stock) return;
-
-
-    const marketValue =
-      Number(position.quantity) *
-      Number(stock.price);
-
-
-    const pnl =
-      (
-        Number(stock.price) -
-        Number(position.averagePrice)
-      ) *
-      Number(position.quantity);
-
-
-    const row =
-      document.createElement(
-        "div"
-      );
-
-
-    row.className =
-      "position-row";
-
-
-    row.innerHTML = `
-
-      <div>
-        <strong>
-          ${position.symbol}
-        </strong>
-
-        <div class="muted">
-          ${stock.name}
-        </div>
-      </div>
-
-
-      <div>
-        ${position.quantity}
-      </div>
-
-
-      <div>
-        ${money(position.averagePrice)}
-      </div>
-
-
-      <div>
-        ${money(stock.price)}
-      </div>
-
-
-      <div>
-        ${money(marketValue)}
-      </div>
-
-
-      <div class="${
-        pnl >= 0
-          ? "green"
-          : "red"
-      }">
-
-        ${pnl >= 0 ? "+" : ""}
-        ${money(pnl)}
-
-      </div>
-
-    `;
-
-
-    container.appendChild(row);
-
-  });
-
-}
-
-
-/* =========================================================
-   ORDERS
-========================================================= */
-
-function renderOrders() {
-
-  const container =
-    document.getElementById(
-      "orders"
-    );
-
-
-  if (!container) return;
-
-
-  container.innerHTML = "";
-
-
-  if (
-    !Array.isArray(state.orders) ||
-    state.orders.length === 0
-  ) {
-
-    container.innerHTML = `
-      <div class="empty-state">
-        No orders yet.
-      </div>
-    `;
-
-    return;
-
-  }
-
-
-  state.orders.forEach(order => {
-
-    const row =
-      document.createElement(
-        "div"
-      );
-
-
-    row.className =
-      "order-row";
-
-
-    row.innerHTML = `
-
-      <div>
-
-        <strong>
-          ${order.symbol}
-        </strong>
-
-        <div class="muted">
-          ${order.time || ""}
-        </div>
-
-      </div>
-
-
-      <div>
-        ${order.quantity}
-      </div>
-
-
-      <div>
-        ${money(order.price)}
-      </div>
-
-
-      <div>
-        ${money(order.value)}
-      </div>
-
-
-      <div class="${
-        order.side === "BUY"
-          ? "red"
-          : "green"
-      }">
-
-        ${order.side}
-
-      </div>
-
-    `;
-
-
-    container.appendChild(row);
-
-  });
-
-}
-
-
-/* =========================================================
-   STARTUP
-========================================================= */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
-
-    checkSession();
-
-  }
-);
+      "LOGOUT ERR
