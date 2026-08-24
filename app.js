@@ -1,46 +1,13 @@
-const STORAGE_KEY = "tradesim_v2";
+let state = {
+  cash: 100000,
+  startingCapital: 100000,
+  realizedPnl: 0,
+  stocks: [],
+  positions: {},
+  orders: []
+};
 
-let state = loadState();
 let currentUser = null;
-
-
-/* =========================================================
-   INITIAL STATE
-========================================================= */
-
-function createInitialState() {
-  return {
-    cash: 100000,
-    startingCapital: 100000,
-    realizedPnl: 0,
-    stocks: JSON.parse(JSON.stringify(INITIAL_STOCKS)),
-    positions: {},
-    orders: []
-  };
-}
-
-
-function loadState() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-
-    if (saved) {
-      return JSON.parse(saved);
-    }
-  } catch (error) {
-    console.error(error);
-  }
-
-  return createInitialState();
-}
-
-
-function saveState() {
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(state)
-  );
-}
 
 
 /* =========================================================
@@ -69,7 +36,7 @@ function getPosition(symbol) {
 
 function calculatePortfolioValue() {
 
-  let value = state.cash;
+  let value = Number(state.cash);
 
   Object.values(state.positions).forEach(position => {
 
@@ -77,8 +44,8 @@ function calculatePortfolioValue() {
 
     if (stock) {
       value +=
-        position.quantity *
-        stock.price;
+        Number(position.quantity) *
+        Number(stock.price);
     }
 
   });
@@ -96,10 +63,14 @@ function calculateUnrealizedPnl() {
     const stock = getStock(position.symbol);
 
     if (stock) {
+
       pnl +=
-        (stock.price -
-          position.averagePrice) *
-        position.quantity;
+        (
+          Number(stock.price) -
+          Number(position.averagePrice)
+        ) *
+        Number(position.quantity);
+
     }
 
   });
@@ -111,9 +82,110 @@ function calculateUnrealizedPnl() {
 function calculateTotalPnl() {
 
   return (
-    state.realizedPnl +
+    Number(state.realizedPnl) +
     calculateUnrealizedPnl()
   );
+
+}
+
+
+/* =========================================================
+   LOAD PORTFOLIO FROM D1
+========================================================= */
+
+async function loadPortfolio() {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/portfolio",
+        {
+          method: "GET",
+          credentials: "same-origin",
+          cache: "no-store"
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.error ||
+        "Unable to load portfolio."
+      );
+
+    }
+
+
+    state.cash =
+      Number(data.account.cash);
+
+    state.startingCapital =
+      Number(data.account.startingCapital);
+
+    state.realizedPnl =
+      Number(data.account.realizedPnl);
+
+
+    state.stocks =
+      Array.isArray(data.stocks)
+        ? data.stocks
+        : [];
+
+
+    state.positions = {};
+
+
+    if (Array.isArray(data.positions)) {
+
+      data.positions.forEach(position => {
+
+        state.positions[position.symbol] = {
+
+          symbol:
+            position.symbol,
+
+          quantity:
+            Number(position.quantity),
+
+          averagePrice:
+            Number(position.averagePrice)
+
+        };
+
+      });
+
+    }
+
+
+    state.orders =
+      Array.isArray(data.orders)
+        ? data.orders
+        : [];
+
+
+    return true;
+
+  } catch (error) {
+
+    console.error(
+      "LOAD PORTFOLIO ERROR:",
+      error
+    );
+
+    alert(
+      error.message ||
+      "Unable to load your trading account."
+    );
+
+    return false;
+
+  }
 
 }
 
@@ -129,15 +201,20 @@ function togglePassword(inputId, button) {
 
   if (!input) return;
 
+
   if (input.type === "password") {
 
     input.type = "text";
-    button.textContent = "Hide";
+
+    button.textContent =
+      "Hide";
 
   } else {
 
     input.type = "password";
-    button.textContent = "Show";
+
+    button.textContent =
+      "Show";
 
   }
 
@@ -167,6 +244,7 @@ function switchAuthMode() {
 
   const switchAuth =
     document.getElementById("switchAuth");
+
 
   if (
     !loginForm ||
@@ -227,17 +305,24 @@ function switchAuthMode() {
    AUTH MESSAGES
 ========================================================= */
 
-function showMessage(id, message, success = false) {
+function showMessage(
+  id,
+  message,
+  success = false
+) {
 
   const element =
     document.getElementById(id);
 
+
   if (!element) {
 
     alert(message);
+
     return;
 
   }
+
 
   element.textContent =
     message;
@@ -257,7 +342,9 @@ function clearMessage(id) {
   if (!element) return;
 
   element.textContent = "";
-  element.className = "auth-message";
+
+  element.className =
+    "auth-message";
 
 }
 
@@ -272,22 +359,28 @@ async function registerTrader(event) {
     event.preventDefault();
   }
 
+
   const username =
     document.getElementById(
       "registerUsername"
     ).value.trim();
+
 
   const password =
     document.getElementById(
       "registerPassword"
     ).value;
 
+
   const confirmPassword =
     document.getElementById(
       "registerConfirmPassword"
     ).value;
 
-  clearMessage("registerMessage");
+
+  clearMessage(
+    "registerMessage"
+  );
 
 
   if (!username || !password) {
@@ -302,7 +395,9 @@ async function registerTrader(event) {
   }
 
 
-  if (!/^[A-Za-z0-9_]{3,30}$/.test(username)) {
+  if (
+    !/^[A-Za-z0-9_]{3,30}$/.test(username)
+  ) {
 
     showMessage(
       "registerMessage",
@@ -343,6 +438,7 @@ async function registerTrader(event) {
       "registerButton"
     );
 
+
   button.disabled = true;
 
   button.innerHTML =
@@ -362,12 +458,14 @@ async function registerTrader(event) {
               "application/json"
           },
 
-          credentials: "same-origin",
+          credentials:
+            "same-origin",
 
-          body: JSON.stringify({
-            username,
-            password
-          })
+          body:
+            JSON.stringify({
+              username,
+              password
+            })
         }
       );
 
@@ -400,6 +498,7 @@ async function registerTrader(event) {
       "registerPassword"
     ).value = "";
 
+
     document.getElementById(
       "registerConfirmPassword"
     ).value = "";
@@ -411,7 +510,8 @@ async function registerTrader(event) {
 
       document.getElementById(
         "loginUsername"
-      ).value = username;
+      ).value =
+        username;
 
     }, 1200);
 
@@ -447,17 +547,22 @@ async function loginTrader(event) {
     event.preventDefault();
   }
 
+
   const username =
     document.getElementById(
       "loginUsername"
     ).value.trim();
+
 
   const password =
     document.getElementById(
       "loginPassword"
     ).value;
 
-  clearMessage("loginMessage");
+
+  clearMessage(
+    "loginMessage"
+  );
 
 
   if (!username || !password) {
@@ -476,6 +581,7 @@ async function loginTrader(event) {
     document.getElementById(
       "loginButton"
     );
+
 
   button.disabled = true;
 
@@ -496,12 +602,14 @@ async function loginTrader(event) {
               "application/json"
           },
 
-          credentials: "same-origin",
+          credentials:
+            "same-origin",
 
-          body: JSON.stringify({
-            username,
-            password
-          })
+          body:
+            JSON.stringify({
+              username,
+              password
+            })
         }
       );
 
@@ -528,12 +636,8 @@ async function loginTrader(event) {
 
 
     /*
-      IMPORTANT:
-
-      No localStorage login flag is created.
-
-      Authentication is now controlled
-      by the HttpOnly server session cookie.
+      Authentication is handled
+      by the server-side HttpOnly session.
     */
 
 
@@ -578,7 +682,8 @@ async function checkSession() {
           credentials:
             "same-origin",
 
-          cache: "no-store"
+          cache:
+            "no-store"
         }
       );
 
@@ -586,6 +691,7 @@ async function checkSession() {
     if (!response.ok) {
 
       showLoginScreen();
+
       return;
 
     }
@@ -601,6 +707,7 @@ async function checkSession() {
     ) {
 
       showLoginScreen();
+
       return;
 
     }
@@ -632,10 +739,12 @@ function showLoginScreen() {
 
   currentUser = null;
 
+
   const authScreen =
     document.getElementById(
       "authScreen"
     );
+
 
   const appScreen =
     document.getElementById(
@@ -676,12 +785,13 @@ function showLoginScreen() {
    SHOW TRADING APP
 ========================================================= */
 
-function showTradingApp() {
+async function showTradingApp() {
 
   const authScreen =
     document.getElementById(
       "authScreen"
     );
+
 
   const appScreen =
     document.getElementById(
@@ -731,6 +841,15 @@ function showTradingApp() {
   }
 
 
+  const loaded =
+    await loadPortfolio();
+
+
+  if (!loaded) {
+    return;
+  }
+
+
   renderDashboard();
 
 }
@@ -747,25 +866,30 @@ function showLogin() {
       "loginForm"
     );
 
+
   const registerForm =
     document.getElementById(
       "registerForm"
     );
+
 
   const authTitle =
     document.getElementById(
       "authTitle"
     );
 
+
   const authSubtitle =
     document.getElementById(
       "authSubtitle"
     );
 
+
   const switchText =
     document.getElementById(
       "switchText"
     );
+
 
   const switchAuth =
     document.getElementById(
@@ -858,6 +982,16 @@ async function logout() {
 
   currentUser = null;
 
+  state = {
+    cash: 100000,
+    startingCapital: 100000,
+    realizedPnl: 0,
+    stocks: [],
+    positions: {},
+    orders: []
+  };
+
+
   showLoginScreen();
 
 }
@@ -874,20 +1008,24 @@ function renderDashboard() {
       "balance"
     );
 
+
   const portfolioElement =
     document.getElementById(
       "portfolio"
     );
+
 
   const unrealizedElement =
     document.getElementById(
       "unrealized"
     );
 
+
   const realizedElement =
     document.getElementById(
       "realized"
     );
+
 
   const totalPnlElement =
     document.getElementById(
@@ -918,14 +1056,18 @@ function renderDashboard() {
     const value =
       calculateUnrealizedPnl();
 
+
     unrealizedElement.textContent =
       money(value);
 
+
     unrealizedElement.className =
       "stat-value " +
-      (value >= 0
-        ? "green"
-        : "red");
+      (
+        value >= 0
+          ? "green"
+          : "red"
+      );
 
   }
 
@@ -933,16 +1075,20 @@ function renderDashboard() {
   if (realizedElement) {
 
     const value =
-      state.realizedPnl;
+      Number(state.realizedPnl);
+
 
     realizedElement.textContent =
       money(value);
 
+
     realizedElement.className =
       "stat-value " +
-      (value >= 0
-        ? "green"
-        : "red");
+      (
+        value >= 0
+          ? "green"
+          : "red"
+      );
 
   }
 
@@ -952,14 +1098,18 @@ function renderDashboard() {
     const value =
       calculateTotalPnl();
 
+
     totalPnlElement.textContent =
       money(value);
 
+
     totalPnlElement.className =
       "stat-value " +
-      (value >= 0
-        ? "green"
-        : "red");
+      (
+        value >= 0
+          ? "green"
+          : "red"
+      );
 
   }
 
@@ -982,7 +1132,9 @@ function renderMarket() {
       "market"
     );
 
+
   if (!container) return;
+
 
   container.innerHTML = "";
 
@@ -990,13 +1142,14 @@ function renderMarket() {
   state.stocks.forEach(stock => {
 
     const change =
-      stock.price -
-      stock.previousClose;
+      Number(stock.price) -
+      Number(stock.previousClose);
+
 
     const percent =
       (
         change /
-        stock.previousClose
+        Number(stock.previousClose)
       ) * 100;
 
 
@@ -1004,6 +1157,7 @@ function renderMarket() {
       document.createElement(
         "div"
       );
+
 
     card.className =
       "stock-card";
@@ -1085,6 +1239,7 @@ function openOrder(symbol, side) {
   const stock =
     getStock(symbol);
 
+
   if (!stock) return;
 
 
@@ -1115,10 +1270,13 @@ function openOrder(symbol, side) {
   document.getElementById(
     "orderPrice"
   ).value =
-    stock.price.toFixed(2);
+    Number(stock.price).toFixed(2);
 
 
-  modal.classList.add("show");
+  modal.classList.add(
+    "show"
+  );
+
 
   updateEstimate();
 
@@ -1131,6 +1289,7 @@ function closeOrder() {
     document.getElementById(
       "orderModal"
     );
+
 
   if (modal) {
 
@@ -1164,6 +1323,9 @@ function updateEstimate() {
     getStock(symbol);
 
 
+  if (!stock) return;
+
+
   const quantity =
     Number(
       document.getElementById(
@@ -1178,7 +1340,7 @@ function updateEstimate() {
         "orderPrice"
       ).value
     ) ||
-    stock.price;
+    Number(stock.price);
 
 
   const value =
@@ -1194,10 +1356,10 @@ function updateEstimate() {
 
 
 /* =========================================================
-   EXECUTE ORDER
+   EXECUTE ORDER — SERVER/D1
 ========================================================= */
 
-function executeOrder() {
+async function executeOrder() {
 
   const symbolText =
     document.getElementById(
@@ -1233,25 +1395,24 @@ function executeOrder() {
     );
 
 
-  const stock =
-    getStock(symbol);
+  if (!symbol) {
 
+    alert(
+      "Stock symbol not found."
+    );
 
-  if (!stock) {
-
-    alert("Stock not found.");
     return;
 
   }
 
 
   if (
-    !Number.isFinite(quantity) ||
+    !Number.isInteger(quantity) ||
     quantity <= 0
   ) {
 
     alert(
-      "Enter a valid quantity."
+      "Enter a valid whole-number quantity."
     );
 
     return;
@@ -1273,130 +1434,11 @@ function executeOrder() {
   }
 
 
-  const orderValue =
-    quantity * price;
+  const button =
+    document.querySelector(
+      "#orderModal .confirm-order"
+    );
 
 
-  if (side === "BUY") {
-
-    if (
-      orderValue >
-      state.cash
-    ) {
-
-      alert(
-        "Insufficient simulated funds.\n\n" +
-        "Required: " +
-        money(orderValue) +
-        "\nAvailable: " +
-        money(state.cash)
-      );
-
-      return;
-
-    }
-
-
-    state.cash -=
-      orderValue;
-
-
-    const existing =
-      getPosition(symbol);
-
-
-    if (existing) {
-
-      const oldValue =
-        existing.averagePrice *
-        existing.quantity;
-
-      const newValue =
-        price *
-        quantity;
-
-      const totalQuantity =
-        existing.quantity +
-        quantity;
-
-
-      existing.averagePrice =
-        (
-          oldValue +
-          newValue
-        ) /
-        totalQuantity;
-
-
-      existing.quantity =
-        totalQuantity;
-
-    } else {
-
-      state.positions[symbol] = {
-
-        symbol,
-
-        quantity,
-
-        averagePrice:
-          price
-
-      };
-
-    }
-
-
-  } else {
-
-    const existing =
-      getPosition(symbol);
-
-
-    if (
-      !existing ||
-      existing.quantity <
-      quantity
-    ) {
-
-      alert(
-        "Insufficient simulated holdings.\n\n" +
-        "You cannot sell more shares than you own."
-      );
-
-      return;
-
-    }
-
-
-    const pnl =
-      (
-        price -
-        existing.averagePrice
-      ) *
-      quantity;
-
-
-    state.cash +=
-      orderValue;
-
-
-    state.realizedPnl +=
-      pnl;
-
-
-    existing.quantity -=
-      quantity;
-
-
-    if (
-      existing.quantity === 0
-    ) {
-
-      delete state.positions[
-        symbol
-      ];
-
-    }
-
- 
+  if (button) {
+    button
