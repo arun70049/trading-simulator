@@ -1,261 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="TradeSim - Educational stock market trading simulator">
-  <meta name="theme-color" content="#0b0f19">
-  <title>TradeSim — Stock Trading Simulator</title>
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-    body {
-      font-family: Arial, sans-serif;
-      background: #0b0f19;
-      color: #f5f7fa;
-      min-height: 100vh;
-    }
+  <meta
+    name="description"
+    content="TradeSim educational stock market simulator"
+  >
 
-    button {
-      font: inherit;
-      cursor: pointer;
-    }
+  <meta
+    name="theme-color"
+    content="#080c14"
+  >
 
-    .app {
-      max-width: 1200px;
-      margin: auto;
-      padding-bottom: 80px;
-    }
+  <title>TradeSim — Trading Simulator</title>
 
-    header {
-      padding: 18px 16px;
-      border-bottom: 1px solid #202637;
-      position: sticky;
-      top: 0;
-      background: rgba(11,15,25,.96);
-      z-index: 10;
-    }
+  <link rel="stylesheet" href="style.css">
 
-    .top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .logo {
-      font-size: 22px;
-      font-weight: 800;
-    }
-
-    .logo span {
-      color: #35d07f;
-    }
-
-    .sim-badge {
-      font-size: 10px;
-      padding: 5px 8px;
-      border-radius: 20px;
-      background: #18251f;
-      color: #35d07f;
-      border: 1px solid #285a43;
-    }
-
-    .balance-card {
-      margin: 16px;
-      padding: 20px;
-      border-radius: 18px;
-      background: #131927;
-      border: 1px solid #222a3b;
-    }
-
-    .label {
-      color: #8e98aa;
-      font-size: 13px;
-      margin-bottom: 7px;
-    }
-
-    .balance {
-      font-size: 30px;
-      font-weight: 800;
-      margin-bottom: 12px;
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    .stat {
-      background: #0e1421;
-      border-radius: 12px;
-      padding: 12px;
-    }
-
-    .value {
-      font-weight: 700;
-      margin-top: 5px;
-    }
-
-    .positive {
-      color: #35d07f;
-    }
-
-    .negative {
-      color: #ff5c70;
-    }
-
-    .section {
-      padding: 10px 16px;
-    }
-
-    .section-title {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    .market-card {
-      background: #131927;
-      border: 1px solid #222a3b;
-      padding: 15px;
-      border-radius: 15px;
-      margin-bottom: 10px;
-    }
-
-    .stock-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .stock-name {
-      font-weight: 700;
-    }
-
-    .stock-symbol {
-      color: #8e98aa;
-      font-size: 12px;
-      margin-top: 4px;
-    }
-
-    .price {
-      text-align: right;
-      font-weight: 700;
-    }
-
-    .change {
-      font-size: 12px;
-      margin-top: 4px;
-    }
-
-    .actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    .btn {
-      flex: 1;
-      padding: 11px;
-      border: 0;
-      border-radius: 10px;
-      font-weight: 700;
-    }
-
-    .buy {
-      background: #1b8f5a;
-      color: white;
-    }
-
-    .sell {
-      background: #b63d52;
-      color: white;
-    }
-
-    .admin {
-      background: #171e2e;
-      border: 1px solid #30394e;
-      padding: 15px;
-      border-radius: 15px;
-      margin: 16px;
-    }
-
-    .admin-controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .admin button {
-      padding: 10px;
-      border: 1px solid #35405a;
-      border-radius: 9px;
-      background: #111827;
-      color: white;
-    }
-
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #111622;
-      border-top: 1px solid #252d3e;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      padding: 8px;
-      z-index: 20;
-    }
-
-    .nav-btn {
-      background: none;
-      border: 0;
-      color: #8993a7;
-      padding: 7px 2px;
-      font-size: 12px;
-    }
-
-    .nav-btn.active {
-      color: #35d07f;
-    }
-
-    .disclaimer {
-      color: #6f788a;
-      font-size: 11px;
-      line-height: 1.5;
-      padding: 20px 16px;
-      text-align: center;
-    }
-
-    @media (min-width: 700px) {
-      .stats {
-        grid-template-columns: repeat(4, 1fr);
-      }
-
-      .market-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-      }
-
-      .bottom-nav {
-        max-width: 600px;
-        margin: auto;
-        border-radius: 15px 15px 0 0;
-      }
-    }
-  </style>
 </head>
 
 <body>
@@ -263,274 +31,406 @@
 <div class="app">
 
   <header>
-    <div class="top">
-      <div class="logo">Trade<span>Sim</span></div>
-      <div class="sim-badge">SIMULATION ONLY</div>
+
+    <div class="topbar">
+
+      <div class="logo">
+        Trade<span>Sim</span>
+      </div>
+
+      <div class="badge">
+        SIMULATION ONLY
+      </div>
+
     </div>
+
   </header>
+
 
   <main>
 
+
+    <!-- ACCOUNT -->
+
     <section class="balance-card">
-      <div class="label">Available simulated cash</div>
-      <div class="balance" id="balance">₹1,00,000.00</div>
+
+      <div class="muted">
+        Available simulated cash
+      </div>
+
+      <div
+        class="balance"
+        id="balance"
+      >
+        ₹1,00,000.00
+      </div>
+
 
       <div class="stats">
-        <div class="stat">
-          <div class="label">Portfolio</div>
-          <div class="value" id="portfolio">₹1,00,000.00</div>
-        </div>
 
         <div class="stat">
-          <div class="label">Today's P&L</div>
-          <div class="value positive" id="dailyPnl">₹0.00</div>
+
+          <div class="muted">
+            Portfolio
+          </div>
+
+          <div
+            class="stat-value"
+            id="portfolio"
+          >
+            ₹1,00,000.00
+          </div>
+
         </div>
 
-        <div class="stat">
-          <div class="label">Overall P&L</div>
-          <div class="value positive" id="overallPnl">₹0.00</div>
-        </div>
 
         <div class="stat">
-          <div class="label">Market</div>
-          <div class="value positive">OPEN</div>
+
+          <div class="muted">
+            Unrealized P&L
+          </div>
+
+          <div
+            class="stat-value"
+            id="unrealized"
+          >
+            ₹0.00
+          </div>
+
         </div>
+
+
+        <div class="stat">
+
+          <div class="muted">
+            Realized P&L
+          </div>
+
+          <div
+            class="stat-value"
+            id="realized"
+          >
+            ₹0.00
+          </div>
+
+        </div>
+
+
+        <div class="stat">
+
+          <div class="muted">
+            Total P&L
+          </div>
+
+          <div
+            class="stat-value"
+            id="totalPnl"
+          >
+            ₹0.00
+          </div>
+
+        </div>
+
       </div>
+
     </section>
+
+
+
+    <!-- MARKET -->
 
     <section class="section">
+
       <div class="section-title">
-        <span>Market</span>
-        <span class="label">SIMULATED</span>
+
+        <span>
+          Market
+        </span>
+
+        <span class="muted">
+          SIMULATED
+        </span>
+
       </div>
 
-      <div class="market-grid" id="market"></div>
+
+      <div
+        id="market"
+        class="market-grid"
+      ></div>
+
     </section>
 
-    <section class="admin">
+
+
+    <!-- POSITIONS -->
+
+    <section class="section">
+
       <div class="section-title">
-        <span>Admin Market Control</span>
-        <span class="sim-badge">ADMIN</span>
+
+        <span>
+          Open Positions
+        </span>
+
       </div>
 
-      <div class="label">
-        Demo controls — these change simulated prices only.
-      </div>
 
-      <div class="admin-controls">
-        <button onclick="marketMove('up')">📈 Bull Move</button>
-        <button onclick="marketMove('down')">📉 Bear Move</button>
-        <button onclick="marketMove('volatile')">⚡ Volatility</button>
-        <button onclick="resetMarket()">↻ Reset Prices</button>
-      </div>
+      <div id="positions"></div>
+
     </section>
+
+
+
+    <!-- ORDERS -->
+
+    <section class="section">
+
+      <div class="section-title">
+
+        <span>
+          Recent Orders
+        </span>
+
+      </div>
+
+
+      <div id="orders"></div>
+
+    </section>
+
+
+
+    <!-- ADMIN DEMO -->
+
+    <section class="section">
+
+      <div class="section-title">
+
+        <span>
+          Admin Market Control
+        </span>
+
+        <span class="badge">
+          DEMO
+        </span>
+
+      </div>
+
+
+      <div class="portfolio-card">
+
+        <div class="muted">
+          Temporary market controls.
+          A protected Admin Panel will be created
+          in the next version.
+        </div>
+
+
+        <div class="stock-actions">
+
+          <button
+            class="btn buy-btn"
+            onclick="marketMove('UP')"
+          >
+            📈 Bull
+          </button>
+
+
+          <button
+            class="btn sell-btn"
+            onclick="marketMove('DOWN')"
+          >
+            📉 Bear
+          </button>
+
+
+          <button
+            class="btn"
+            style="background:#303b51;color:white"
+            onclick="marketMove('VOLATILE')"
+          >
+            ⚡ Volatile
+          </button>
+
+        </div>
+
+
+        <div style="margin-top:10px">
+
+          <button
+            class="btn"
+            style="background:#202a3b;color:white;width:100%"
+            onclick="resetSimulation()"
+          >
+            Reset Simulation
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
 
     <div class="disclaimer">
-      SIMULATION ONLY — No real money is used. Prices, orders,
-      transactions and results are simulated for educational purposes.
-      This application does not execute real trades or provide financial advice.
+
+      SIMULATION ONLY — No real money is used.
+      Prices, orders, transactions and results are
+      simulated for educational purposes only.
+      This application does not execute real trades
+      or provide financial advice.
+
     </div>
 
   </main>
+
 </div>
 
+
+
+<!-- ORDER MODAL -->
+
+<div
+  id="orderModal"
+  class="modal-overlay"
+>
+
+  <div class="modal">
+
+    <h2>
+      Place Order
+    </h2>
+
+    <div
+      id="orderSymbol"
+      class="modal-stock"
+    >
+    </div>
+
+
+    <div class="form-group">
+
+      <label>
+        Order side
+      </label>
+
+      <select id="orderSide">
+
+        <option value="BUY">
+          BUY
+        </option>
+
+        <option value="SELL">
+          SELL
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label>
+        Quantity
+      </label>
+
+      <input
+        id="orderQuantity"
+        type="number"
+        min="1"
+        step="1"
+        value="1"
+      >
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label>
+        Simulated execution price
+      </label>
+
+      <input
+        id="orderPrice"
+        type="number"
+        min="0.01"
+        step="0.01"
+      >
+
+    </div>
+
+
+    <div class="estimate">
+
+      <div>
+        Estimated order value:
+      </div>
+
+      <strong
+        id="estimatedValue"
+      >
+        ₹0.00
+      </strong>
+
+    </div>
+
+
+    <div class="modal-actions">
+
+      <button
+        class="cancel-btn"
+        onclick="closeOrder()"
+      >
+        Cancel
+      </button>
+
+
+      <button
+        class="confirm-btn"
+        onclick="executeOrder()"
+      >
+        Confirm Order
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
 <nav class="bottom-nav">
-  <button class="nav-btn active">⌂<br>Home</button>
-  <button class="nav-btn">◉<br>Market</button>
-  <button class="nav-btn">▣<br>Portfolio</button>
-  <button class="nav-btn">☰<br>Orders</button>
+
+  <button class="nav-btn active">
+    🏠<br>
+    Home
+  </button>
+
+  <button class="nav-btn">
+    📊<br>
+    Market
+  </button>
+
+  <button class="nav-btn">
+    💼<br>
+    Portfolio
+  </button>
+
+  <button class="nav-btn">
+    📋<br>
+    Orders
+  </button>
+
 </nav>
 
-<script>
 
-  const startingBalance = 100000;
-
-  let balance = startingBalance;
-
-  const stocks = [
-    {
-      name: "Reliance Industries",
-      symbol: "RELIANCE",
-      price: 2450,
-      base: 2450
-    },
-    {
-      name: "HDFC Bank",
-      symbol: "HDFCBANK",
-      price: 1750,
-      base: 1750
-    },
-    {
-      name: "Infosys",
-      symbol: "INFY",
-      price: 1880,
-      base: 1880
-    },
-    {
-      name: "Tata Motors",
-      symbol: "TATAMOTORS",
-      price: 720,
-      base: 720
-    },
-    {
-      name: "ICICI Bank",
-      symbol: "ICICIBANK",
-      price: 1320,
-      base: 1320
-    },
-    {
-      name: "ITC",
-      symbol: "ITC",
-      price: 430,
-      base: 430
-    }
-  ];
-
-  function money(value) {
-    return "₹" + value.toLocaleString("en-IN", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  }
-
-  function renderMarket() {
-
-    const market = document.getElementById("market");
-
-    market.innerHTML = "";
-
-    stocks.forEach(stock => {
-
-      const change = stock.price - stock.base;
-      const percentage = (change / stock.base) * 100;
-
-      const card = document.createElement("div");
-
-      card.className = "market-card";
-
-      card.innerHTML = `
-        <div class="stock-row">
-
-          <div>
-            <div class="stock-name">${stock.name}</div>
-            <div class="stock-symbol">${stock.symbol}</div>
-          </div>
-
-          <div class="price">
-            ${money(stock.price)}
-            <div class="change ${change >= 0 ? "positive" : "negative"}">
-              ${change >= 0 ? "+" : ""}${percentage.toFixed(2)}%
-            </div>
-          </div>
-
-        </div>
-
-        <div class="actions">
-          <button class="btn buy" onclick="simulateBuy('${stock.symbol}')">
-            BUY
-          </button>
-
-          <button class="btn sell" onclick="simulateSell('${stock.symbol}')">
-            SELL
-          </button>
-        </div>
-      `;
-
-      market.appendChild(card);
-
-    });
-
-  }
-
-  function simulateBuy(symbol) {
-
-    const stock = stocks.find(s => s.symbol === symbol);
-
-    const quantity = 1;
-
-    const cost = stock.price * quantity;
-
-    if (balance < cost) {
-
-      alert("Insufficient simulated funds.");
-
-      return;
-    }
-
-    balance -= cost;
-
-    updateBalance();
-
-    alert(
-      "SIMULATED ORDER\n\n" +
-      "BUY " + quantity + " × " + stock.symbol +
-      "\nPrice: " + money(stock.price) +
-      "\nTotal: " + money(cost)
-    );
-
-  }
-
-  function simulateSell(symbol) {
-
-    const stock = stocks.find(s => s.symbol === symbol);
-
-    alert(
-      "SIMULATED SELL ORDER\n\n" +
-      "This first prototype does not yet maintain individual positions.\n\n" +
-      "The full trading engine will be added in the next version."
-    );
-
-  }
-
-  function updateBalance() {
-
-    document.getElementById("balance").textContent =
-      money(balance);
-
-    document.getElementById("portfolio").textContent =
-      money(balance);
-
-  }
-
-  function marketMove(type) {
-
-    stocks.forEach(stock => {
-
-      let movement;
-
-      if (type === "up") {
-        movement = 1 + (Math.random() * 0.04);
-      }
-
-      if (type === "down") {
-        movement = 1 - (Math.random() * 0.04);
-      }
-
-      if (type === "volatile") {
-        movement = 1 + ((Math.random() - 0.5) * 0.12);
-      }
-
-      stock.price = stock.price * movement;
-
-    });
-
-    renderMarket();
-
-  }
-
-  function resetMarket() {
-
-    stocks.forEach(stock => {
-      stock.price = stock.base;
-    });
-
-    renderMarket();
-
-  }
-
-  renderMarket();
-
-</script>
+<script src="data.js"></script>
+<script src="app.js"></script>
 
 </body>
+
 </html>
