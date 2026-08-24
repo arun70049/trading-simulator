@@ -1,249 +1,301 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080b12">
+  <meta name="description" content="TradeSim - Educational Stock Trading Simulator">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <meta
-    name="description"
-    content="TradeSim educational stock market simulator"
-  >
-
-  <meta
-    name="theme-color"
-    content="#080c14"
-  >
-
-  <title>TradeSim — Trading Simulator</title>
+  <title>TradeSim — Virtual Trading</title>
 
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<!-- =========================
-     AUTH SCREEN
-========================= -->
+<div id="toast" class="toast"></div>
 
-<div id="authScreen" class="auth-screen">
+<!-- ================= AUTH SCREEN ================= -->
+
+<section id="authScreen" class="auth-screen">
+
+  <div class="auth-glow glow-one"></div>
+  <div class="auth-glow glow-two"></div>
 
   <div class="auth-card">
 
-    <div class="auth-logo">
-      Trade<span>Sim</span>
+    <div class="brand">
+      <div class="brand-icon">T</div>
+
+      <div>
+        <div class="brand-name">
+          Trade<span>Sim</span>
+        </div>
+
+        <div class="brand-subtitle">
+          Virtual trading. Real learning.
+        </div>
+      </div>
     </div>
 
-    <div class="auth-badge">
-      SIMULATION ONLY
+    <div class="auth-heading">
+
+      <h1 id="authTitle">
+        Welcome back
+      </h1>
+
+      <p id="authSubtitle">
+        Sign in to continue your trading simulation.
+      </p>
+
     </div>
-
-    <h1 id="authTitle">
-      Welcome to TradeSim
-    </h1>
-
-    <p id="authSubtitle" class="auth-subtitle">
-      Practice stock trading with simulated money.
-    </p>
 
 
     <!-- LOGIN -->
 
-    <div id="loginForm">
+    <form id="loginForm" class="auth-form">
 
-      <div class="auth-input-group">
+      <div class="field">
 
-        <label>
+        <label for="loginUsername">
           Username
         </label>
 
-        <input
-          id="loginUsername"
-          type="text"
-          autocomplete="username"
-          placeholder="Enter username"
-        >
+        <div class="input-wrap">
+
+          <span>👤</span>
+
+          <input
+            id="loginUsername"
+            type="text"
+            autocomplete="username"
+            placeholder="Enter your username"
+            maxlength="30"
+            required
+          >
+
+        </div>
 
       </div>
 
 
-      <div class="auth-input-group">
+      <div class="field">
 
-        <label>
+        <label for="loginPassword">
           Password
         </label>
 
-        <input
-          id="loginPassword"
-          type="password"
-          autocomplete="current-password"
-          placeholder="Enter password"
-        >
+        <div class="input-wrap">
+
+          <span>🔒</span>
+
+          <input
+            id="loginPassword"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Enter your password"
+            required
+          >
+
+          <button
+            type="button"
+            class="password-toggle"
+            onclick="togglePassword('loginPassword', this)"
+          >
+            Show
+          </button>
+
+        </div>
 
       </div>
 
 
       <button
+        type="submit"
+        class="primary-button"
         id="loginButton"
-        class="auth-primary-btn"
-        onclick="loginTrader()"
       >
-        LOGIN
+        <span>Login to TradeSim</span>
+        <span>→</span>
       </button>
 
-
-      <p
-        id="loginMessage"
-        class="auth-message"
-      ></p>
-
-
-      <div class="auth-switch">
-
-        New trader?
-
-        <button
-          onclick="showRegister()"
-        >
-          Create account
-        </button>
-
-      </div>
-
-    </div>
-
+    </form>
 
 
     <!-- REGISTER -->
 
-    <div
-      id="registerForm"
-      style="display:none"
-    >
+    <form id="registerForm" class="auth-form hidden">
 
-      <div class="auth-input-group">
+      <div class="field">
 
-        <label>
+        <label for="registerUsername">
           Username
         </label>
 
-        <input
-          id="registerUsername"
-          type="text"
-          autocomplete="username"
-          placeholder="Choose username"
-        >
+        <div class="input-wrap">
+
+          <span>👤</span>
+
+          <input
+            id="registerUsername"
+            type="text"
+            autocomplete="username"
+            placeholder="Choose a username"
+            maxlength="30"
+            required
+          >
+
+        </div>
+
+        <div class="field-hint">
+          3–30 characters · letters, numbers and _
+        </div>
 
       </div>
 
 
-      <div class="auth-input-group">
+      <div class="field">
 
-        <label>
+        <label for="registerPassword">
           Password
         </label>
 
-        <input
-          id="registerPassword"
-          type="password"
-          autocomplete="new-password"
-          placeholder="Minimum 8 characters"
-        >
+        <div class="input-wrap">
+
+          <span>🔒</span>
+
+          <input
+            id="registerPassword"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Create a password"
+            minlength="8"
+            required
+          >
+
+          <button
+            type="button"
+            class="password-toggle"
+            onclick="togglePassword('registerPassword', this)"
+          >
+            Show
+          </button>
+
+        </div>
+
+        <div class="password-strength">
+          <div id="strengthBar"></div>
+        </div>
+
+        <div id="strengthText" class="field-hint">
+          Use at least 8 characters.
+        </div>
 
       </div>
 
 
-      <div class="auth-input-group">
+      <div class="field">
 
-        <label>
-          Confirm Password
+        <label for="registerConfirmPassword">
+          Confirm password
         </label>
 
-        <input
-          id="registerConfirmPassword"
-          type="password"
-          autocomplete="new-password"
-          placeholder="Repeat password"
-        >
+        <div class="input-wrap">
+
+          <span>✓</span>
+
+          <input
+            id="registerConfirmPassword"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Repeat your password"
+            minlength="8"
+            required
+          >
+
+        </div>
 
       </div>
 
 
       <button
+        type="submit"
+        class="primary-button"
         id="registerButton"
-        class="auth-primary-btn"
-        onclick="registerTrader()"
       >
-        CREATE TRADER ACCOUNT
+        <span>Create Trader Account</span>
+        <span>→</span>
       </button>
 
-
-      <p
-        id="registerMessage"
-        class="auth-message"
-      ></p>
+    </form>
 
 
-      <div class="auth-switch">
+    <div class="auth-switch">
 
-        Already have an account?
+      <span id="switchText">
+        New to TradeSim?
+      </span>
 
-        <button
-          onclick="showLogin()"
-        >
-          Login
-        </button>
-
-      </div>
+      <button
+        type="button"
+        id="switchAuth"
+        onclick="switchAuthMode()"
+      >
+        Create account
+      </button>
 
     </div>
 
 
-    <div class="auth-disclaimer">
+    <div class="simulation-note">
 
-      Educational simulation only.
-      No real money is used and no real trades
-      are executed.
+      <span>🛡️</span>
+
+      <div>
+        <strong>Simulation only</strong>
+
+        <p>
+          No real money is used. TradeSim is an
+          educational trading simulator.
+        </p>
+      </div>
 
     </div>
 
   </div>
 
-</div>
+</section>
 
 
+<!-- ================= TRADING APP ================= -->
 
-<!-- =========================
-     TRADING APPLICATION
-========================= -->
-
-<div
-  id="tradingApp"
-  class="app"
-  style="display:none"
->
+<div id="appScreen" class="app hidden">
 
   <header>
 
     <div class="topbar">
 
-      <div class="logo">
-        Trade<span>Sim</span>
-      </div>
+      <div>
 
-      <div style="display:flex;align-items:center;gap:8px">
-
-        <div class="badge">
-          SIMULATION ONLY
+        <div class="logo">
+          Trade<span>Sim</span>
         </div>
 
+        <div id="welcomeUser" class="user-label">
+          Trader
+        </div>
+
+      </div>
+
+      <div class="header-actions">
+
+        <span class="badge">
+          SIMULATION
+        </span>
+
         <button
-          class="logout-btn"
-          onclick="logoutTrader()"
+          class="logout-button"
+          onclick="logout()"
         >
           Logout
         </button>
@@ -256,7 +308,6 @@
 
 
   <main>
-
 
     <!-- ACCOUNT -->
 
@@ -273,76 +324,39 @@
         ₹1,00,000.00
       </div>
 
-
       <div class="stats">
 
         <div class="stat">
-
-          <div class="muted">
-            Portfolio
-          </div>
-
-          <div
-            class="stat-value"
-            id="portfolio"
-          >
+          <div class="muted">Portfolio</div>
+          <div class="stat-value" id="portfolio">
             ₹1,00,000.00
           </div>
-
         </div>
 
-
         <div class="stat">
-
-          <div class="muted">
-            Unrealized P&L
-          </div>
-
-          <div
-            class="stat-value"
-            id="unrealized"
-          >
+          <div class="muted">Unrealized P&L</div>
+          <div class="stat-value" id="unrealized">
             ₹0.00
           </div>
-
         </div>
 
-
         <div class="stat">
-
-          <div class="muted">
-            Realized P&L
-          </div>
-
-          <div
-            class="stat-value"
-            id="realized"
-          >
+          <div class="muted">Realized P&L</div>
+          <div class="stat-value" id="realized">
             ₹0.00
           </div>
-
         </div>
 
-
         <div class="stat">
-
-          <div class="muted">
-            Total P&L
-          </div>
-
-          <div
-            class="stat-value"
-            id="totalPnl"
-          >
+          <div class="muted">Total P&L</div>
+          <div class="stat-value" id="totalPnl">
             ₹0.00
           </div>
-
         </div>
 
       </div>
 
     </section>
-
 
 
     <!-- MARKET -->
@@ -351,16 +365,14 @@
 
       <div class="section-title">
 
-        <span>
-          Market
-        </span>
+        <span>Market</span>
 
-        <span class="muted">
+        <span class="market-status">
+          <i></i>
           SIMULATED
         </span>
 
       </div>
-
 
       <div
         id="market"
@@ -370,24 +382,17 @@
     </section>
 
 
-
     <!-- POSITIONS -->
 
     <section class="section">
 
       <div class="section-title">
-
-        <span>
-          Open Positions
-        </span>
-
+        <span>Open Positions</span>
       </div>
-
 
       <div id="positions"></div>
 
     </section>
-
 
 
     <!-- ORDERS -->
@@ -395,45 +400,34 @@
     <section class="section">
 
       <div class="section-title">
-
-        <span>
-          Recent Orders
-        </span>
-
+        <span>Recent Orders</span>
       </div>
-
 
       <div id="orders"></div>
 
     </section>
 
 
-
-    <!-- ADMIN DEMO -->
+    <!-- ADMIN -->
 
     <section class="section">
 
       <div class="section-title">
 
-        <span>
-          Admin Market Control
-        </span>
+        <span>Market Controls</span>
 
-        <span class="badge">
+        <span class="badge demo">
           DEMO
         </span>
 
       </div>
 
-
       <div class="portfolio-card">
 
         <div class="muted">
-          Temporary market controls.
-          A protected Admin Panel will be created
-          in the next version.
+          Temporary controls for this educational
+          simulation.
         </div>
-
 
         <div class="stock-actions">
 
@@ -444,7 +438,6 @@
             📈 Bull
           </button>
 
-
           <button
             class="btn sell-btn"
             onclick="marketMove('DOWN')"
@@ -452,10 +445,8 @@
             📉 Bear
           </button>
 
-
           <button
-            class="btn"
-            style="background:#303b51;color:white"
+            class="btn volatile-btn"
             onclick="marketMove('VOLATILE')"
           >
             ⚡ Volatile
@@ -463,18 +454,12 @@
 
         </div>
 
-
-        <div style="margin-top:10px">
-
-          <button
-            class="btn"
-            style="background:#202a3b;color:white;width:100%"
-            onclick="resetSimulation()"
-          >
-            Reset Simulation
-          </button>
-
-        </div>
+        <button
+          class="reset-button"
+          onclick="resetSimulation()"
+        >
+          Reset Simulation
+        </button>
 
       </div>
 
@@ -496,10 +481,7 @@
 </div>
 
 
-
-<!-- =========================
-     ORDER MODAL
-========================= -->
+<!-- ================= ORDER MODAL ================= -->
 
 <div
   id="orderModal"
@@ -508,21 +490,31 @@
 
   <div class="modal">
 
-    <h2>
-      Place Order
-    </h2>
+    <div class="modal-header">
 
-    <div
-      id="orderSymbol"
-      class="modal-stock"
-    ></div>
+      <div>
+
+        <div class="modal-label">
+          PLACE ORDER
+        </div>
+
+        <h2 id="orderSymbol"></h2>
+
+      </div>
+
+      <button
+        class="modal-close"
+        onclick="closeOrder()"
+      >
+        ×
+      </button>
+
+    </div>
 
 
     <div class="form-group">
 
-      <label>
-        Order side
-      </label>
+      <label>Order side</label>
 
       <select id="orderSide">
 
@@ -541,9 +533,7 @@
 
     <div class="form-group">
 
-      <label>
-        Quantity
-      </label>
+      <label>Quantity</label>
 
       <input
         id="orderQuantity"
@@ -558,9 +548,7 @@
 
     <div class="form-group">
 
-      <label>
-        Simulated execution price
-      </label>
+      <label>Simulated execution price</label>
 
       <input
         id="orderPrice"
@@ -574,13 +562,11 @@
 
     <div class="estimate">
 
-      <div>
-        Estimated order value:
-      </div>
+      <span>
+        Estimated order value
+      </span>
 
-      <strong
-        id="estimatedValue"
-      >
+      <strong id="estimatedValue">
         ₹0.00
       </strong>
 
@@ -596,7 +582,6 @@
         Cancel
       </button>
 
-
       <button
         class="confirm-btn"
         onclick="executeOrder()"
@@ -611,30 +596,27 @@
 </div>
 
 
-
-<!-- =========================
-     BOTTOM NAVIGATION
-========================= -->
+<!-- ================= BOTTOM NAV ================= -->
 
 <nav class="bottom-nav">
 
   <button class="nav-btn active">
-    🏠<br>
+    <span>⌂</span>
     Home
   </button>
 
   <button class="nav-btn">
-    📊<br>
+    <span>◈</span>
     Market
   </button>
 
   <button class="nav-btn">
-    💼<br>
+    <span>▣</span>
     Portfolio
   </button>
 
   <button class="nav-btn">
-    📋<br>
+    <span>☷</span>
     Orders
   </button>
 
@@ -645,5 +627,4 @@
 <script src="app.js"></script>
 
 </body>
-
-</html>
+  </html>
