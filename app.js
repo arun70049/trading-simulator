@@ -1441,4 +1441,326 @@ async function executeOrder() {
 
 
   if (button) {
-    button
+    button.disabled = true;
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/order",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          credentials:
+            "same-origin",
+
+          body:
+            JSON.stringify({
+              symbol,
+              side,
+              quantity,
+              price
+            })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (!response.ok) {
+
+      alert(
+        data.error ||
+        "Order could not be executed."
+      );
+
+      return;
+
+    }
+
+
+    closeOrder();
+
+
+    /*
+      IMPORTANT:
+
+      The server has now updated D1.
+
+      Reload the portfolio from D1 so the
+      dashboard always reflects server state.
+    */
+
+    const loaded =
+      await loadPortfolio();
+
+
+    if (!loaded) {
+      return;
+    }
+
+
+    renderDashboard();
+
+
+  } catch (error) {
+
+    console.error(
+      "EXECUTE ORDER ERROR:",
+      error
+    );
+
+
+    alert(
+      "Network error. Order was not completed."
+    );
+
+  } finally {
+
+    if (button) {
+      button.disabled = false;
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   POSITIONS
+========================================================= */
+
+function renderPositions() {
+
+  const container =
+    document.getElementById(
+      "positions"
+    );
+
+
+  if (!container) return;
+
+
+  container.innerHTML = "";
+
+
+  const positions =
+    Object.values(
+      state.positions
+    );
+
+
+  if (!positions.length) {
+
+    container.innerHTML = `
+      <div class="empty-state">
+        No open positions yet.
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  positions.forEach(position => {
+
+    const stock =
+      getStock(position.symbol);
+
+
+    if (!stock) return;
+
+
+    const currentValue =
+      Number(position.quantity) *
+      Number(stock.price);
+
+
+    const investedValue =
+      Number(position.quantity) *
+      Number(position.averagePrice);
+
+
+    const pnl =
+      currentValue -
+      investedValue;
+
+
+    const row =
+      document.createElement(
+        "div"
+      );
+
+
+    row.className =
+      "position-row";
+
+
+    row.innerHTML = `
+
+      <div>
+        <strong>
+          ${position.symbol}
+        </strong>
+
+        <div class="muted">
+          ${position.quantity} shares
+        </div>
+      </div>
+
+
+      <div>
+        <div>
+          ${money(position.averagePrice)}
+        </div>
+
+        <div class="muted">
+          Avg. price
+        </div>
+      </div>
+
+
+      <div>
+        <div>
+          ${money(stock.price)}
+        </div>
+
+        <div class="muted">
+          Current
+        </div>
+      </div>
+
+
+      <div class="${
+        pnl >= 0
+          ? "green"
+          : "red"
+      }">
+
+        ${money(pnl)}
+
+      </div>
+
+    `;
+
+
+    container.appendChild(row);
+
+  });
+
+}
+
+
+/* =========================================================
+   ORDERS
+========================================================= */
+
+function renderOrders() {
+
+  const container =
+    document.getElementById(
+      "orders"
+    );
+
+
+  if (!container) return;
+
+
+  container.innerHTML = "";
+
+
+  if (!state.orders.length) {
+
+    container.innerHTML = `
+      <div class="empty-state">
+        No orders yet.
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  state.orders.forEach(order => {
+
+    const row =
+      document.createElement(
+        "div"
+      );
+
+
+    row.className =
+      "order-row";
+
+
+    row.innerHTML = `
+
+      <div>
+        <strong>
+          ${order.symbol}
+        </strong>
+
+        <div class="muted">
+          ${order.side}
+        </div>
+      </div>
+
+
+      <div>
+        ${order.quantity}
+      </div>
+
+
+      <div>
+        ${money(order.price)}
+      </div>
+
+
+      <div>
+        ${money(order.value)}
+      </div>
+
+
+      <div class="${
+        order.side === "BUY"
+          ? "red"
+          : "green"
+      }">
+
+        ${order.side}
+
+      </div>
+
+    `;
+
+
+    container.appendChild(row);
+
+  });
+
+}
+
+
+/* =========================================================
+   STARTUP
+========================================================= */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+
+    checkSession();
+
+  }
+);
