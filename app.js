@@ -97,19 +97,17 @@ async function loadPortfolio() {
 
   try {
 
-    const response =
-      await fetch(
-        "/api/portfolio",
-        {
-          method: "GET",
-          credentials: "same-origin",
-          cache: "no-store"
-        }
-      );
+    const response = await fetch(
+      "/api/portfolio",
+      {
+        method: "GET",
+        credentials: "same-origin",
+        cache: "no-store"
+      }
+    );
 
 
-    const data =
-      await response.json();
+    const data = await response.json();
 
 
     if (!response.ok) {
@@ -508,10 +506,17 @@ async function registerTrader(event) {
 
       showLogin();
 
-      document.getElementById(
-        "loginUsername"
-      ).value =
-        username;
+      const loginUsername =
+        document.getElementById(
+          "loginUsername"
+        );
+
+      if (loginUsername) {
+
+        loginUsername.value =
+          username;
+
+      }
 
     }, 1200);
 
@@ -633,12 +638,6 @@ async function loginTrader(event) {
 
     currentUser =
       data.user;
-
-
-    /*
-      Authentication is handled
-      by the server-side HttpOnly session.
-    */
 
 
     showTradingApp();
@@ -982,6 +981,7 @@ async function logout() {
 
   currentUser = null;
 
+
   state = {
     cash: 100000,
     startingCapital: 100000,
@@ -1147,10 +1147,12 @@ function renderMarket() {
 
 
     const percent =
-      (
-        change /
-        Number(stock.previousClose)
-      ) * 100;
+      Number(stock.previousClose) !== 0
+        ? (
+            change /
+            Number(stock.previousClose)
+          ) * 100
+        : 0;
 
 
     const card =
@@ -1240,7 +1242,13 @@ function openOrder(symbol, side) {
     getStock(symbol);
 
 
-  if (!stock) return;
+  if (!stock) {
+
+    alert("Stock not found.");
+
+    return;
+
+  }
 
 
   const modal =
@@ -1249,28 +1257,63 @@ function openOrder(symbol, side) {
     );
 
 
-  document.getElementById(
-    "orderSymbol"
-  ).textContent =
-    `${stock.name} (${stock.symbol})`;
+  if (!modal) return;
 
 
-  document.getElementById(
-    "orderSide"
-  ).value =
-    side;
+  const symbolElement =
+    document.getElementById(
+      "orderSymbol"
+    );
 
 
-  document.getElementById(
-    "orderQuantity"
-  ).value =
-    1;
+  const sideElement =
+    document.getElementById(
+      "orderSide"
+    );
 
 
-  document.getElementById(
-    "orderPrice"
-  ).value =
-    Number(stock.price).toFixed(2);
+  const quantityElement =
+    document.getElementById(
+      "orderQuantity"
+    );
+
+
+  const priceElement =
+    document.getElementById(
+      "orderPrice"
+    );
+
+
+  if (symbolElement) {
+
+    symbolElement.textContent =
+      `${stock.name} (${stock.symbol})`;
+
+  }
+
+
+  if (sideElement) {
+
+    sideElement.value =
+      side;
+
+  }
+
+
+  if (quantityElement) {
+
+    quantityElement.value =
+      1;
+
+  }
+
+
+  if (priceElement) {
+
+    priceElement.value =
+      Number(stock.price).toFixed(2);
+
+  }
 
 
   modal.classList.add(
@@ -1307,7 +1350,7 @@ function updateEstimate() {
   const symbolText =
     document.getElementById(
       "orderSymbol"
-    ).textContent;
+    )?.textContent || "";
 
 
   const symbol =
@@ -1330,33 +1373,47 @@ function updateEstimate() {
     Number(
       document.getElementById(
         "orderQuantity"
-      ).value
+      )?.value
     ) || 0;
 
 
-  const price =
+  const priceInput =
     Number(
       document.getElementById(
         "orderPrice"
-      ).value
-    ) ||
-    Number(stock.price);
+      )?.value
+    );
+
+
+  const price =
+    Number.isFinite(priceInput) &&
+    priceInput > 0
+      ? priceInput
+      : Number(stock.price);
 
 
   const value =
     quantity * price;
 
 
-  document.getElementById(
-    "estimatedValue"
-  ).textContent =
-    money(value);
+  const estimatedValue =
+    document.getElementById(
+      "estimatedValue"
+    );
+
+
+  if (estimatedValue) {
+
+    estimatedValue.textContent =
+      money(value);
+
+  }
 
 }
 
 
 /* =========================================================
-   EXECUTE ORDER — SERVER/D1
+   EXECUTE ORDER — D1 API
 ========================================================= */
 
 async function executeOrder() {
@@ -1364,7 +1421,7 @@ async function executeOrder() {
   const symbolText =
     document.getElementById(
       "orderSymbol"
-    ).textContent;
+    )?.textContent || "";
 
 
   const symbol =
@@ -1376,391 +1433,9 @@ async function executeOrder() {
   const side =
     document.getElementById(
       "orderSide"
-    ).value;
+    )?.value;
 
 
   const quantity =
     Number(
-      document.getElementById(
-        "orderQuantity"
-      ).value
-    );
-
-
-  const price =
-    Number(
-      document.getElementById(
-        "orderPrice"
-      ).value
-    );
-
-
-  if (!symbol) {
-
-    alert(
-      "Stock symbol not found."
-    );
-
-    return;
-
-  }
-
-
-  if (
-    !Number.isInteger(quantity) ||
-    quantity <= 0
-  ) {
-
-    alert(
-      "Enter a valid whole-number quantity."
-    );
-
-    return;
-
-  }
-
-
-  if (
-    !Number.isFinite(price) ||
-    price <= 0
-  ) {
-
-    alert(
-      "Enter a valid price."
-    );
-
-    return;
-
-  }
-
-
-  const button =
-    document.querySelector(
-      "#orderModal .confirm-order"
-    );
-
-
-  if (button) {
-    button.disabled = true;
-  }
-
-
-  try {
-
-    const response =
-      await fetch(
-        "/api/order",
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          credentials:
-            "same-origin",
-
-          body:
-            JSON.stringify({
-              symbol,
-              side,
-              quantity,
-              price
-            })
-        }
-      );
-
-
-    const data =
-      await response.json();
-
-
-    if (!response.ok) {
-
-      alert(
-        data.error ||
-        "Order could not be executed."
-      );
-
-      return;
-
-    }
-
-
-    closeOrder();
-
-
-    /*
-      IMPORTANT:
-
-      The server has now updated D1.
-
-      Reload the portfolio from D1 so the
-      dashboard always reflects server state.
-    */
-
-    const loaded =
-      await loadPortfolio();
-
-
-    if (!loaded) {
-      return;
-    }
-
-
-    renderDashboard();
-
-
-  } catch (error) {
-
-    console.error(
-      "EXECUTE ORDER ERROR:",
-      error
-    );
-
-
-    alert(
-      "Network error. Order was not completed."
-    );
-
-  } finally {
-
-    if (button) {
-      button.disabled = false;
-    }
-
-  }
-
-}
-
-
-/* =========================================================
-   POSITIONS
-========================================================= */
-
-function renderPositions() {
-
-  const container =
-    document.getElementById(
-      "positions"
-    );
-
-
-  if (!container) return;
-
-
-  container.innerHTML = "";
-
-
-  const positions =
-    Object.values(
-      state.positions
-    );
-
-
-  if (!positions.length) {
-
-    container.innerHTML = `
-      <div class="empty-state">
-        No open positions yet.
-      </div>
-    `;
-
-    return;
-
-  }
-
-
-  positions.forEach(position => {
-
-    const stock =
-      getStock(position.symbol);
-
-
-    if (!stock) return;
-
-
-    const currentValue =
-      Number(position.quantity) *
-      Number(stock.price);
-
-
-    const investedValue =
-      Number(position.quantity) *
-      Number(position.averagePrice);
-
-
-    const pnl =
-      currentValue -
-      investedValue;
-
-
-    const row =
-      document.createElement(
-        "div"
-      );
-
-
-    row.className =
-      "position-row";
-
-
-    row.innerHTML = `
-
-      <div>
-        <strong>
-          ${position.symbol}
-        </strong>
-
-        <div class="muted">
-          ${position.quantity} shares
-        </div>
-      </div>
-
-
-      <div>
-        <div>
-          ${money(position.averagePrice)}
-        </div>
-
-        <div class="muted">
-          Avg. price
-        </div>
-      </div>
-
-
-      <div>
-        <div>
-          ${money(stock.price)}
-        </div>
-
-        <div class="muted">
-          Current
-        </div>
-      </div>
-
-
-      <div class="${
-        pnl >= 0
-          ? "green"
-          : "red"
-      }">
-
-        ${money(pnl)}
-
-      </div>
-
-    `;
-
-
-    container.appendChild(row);
-
-  });
-
-}
-
-
-/* =========================================================
-   ORDERS
-========================================================= */
-
-function renderOrders() {
-
-  const container =
-    document.getElementById(
-      "orders"
-    );
-
-
-  if (!container) return;
-
-
-  container.innerHTML = "";
-
-
-  if (!state.orders.length) {
-
-    container.innerHTML = `
-      <div class="empty-state">
-        No orders yet.
-      </div>
-    `;
-
-    return;
-
-  }
-
-
-  state.orders.forEach(order => {
-
-    const row =
-      document.createElement(
-        "div"
-      );
-
-
-    row.className =
-      "order-row";
-
-
-    row.innerHTML = `
-
-      <div>
-        <strong>
-          ${order.symbol}
-        </strong>
-
-        <div class="muted">
-          ${order.side}
-        </div>
-      </div>
-
-
-      <div>
-        ${order.quantity}
-      </div>
-
-
-      <div>
-        ${money(order.price)}
-      </div>
-
-
-      <div>
-        ${money(order.value)}
-      </div>
-
-
-      <div class="${
-        order.side === "BUY"
-          ? "red"
-          : "green"
-      }">
-
-        ${order.side}
-
-      </div>
-
-    `;
-
-
-    container.appendChild(row);
-
-  });
-
-}
-
-
-/* =========================================================
-   STARTUP
-========================================================= */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
-
-    checkSession();
-
-  }
-);
+      document.getElem
