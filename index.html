@@ -1,33 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#080b12">
-  <meta name="description" content="TradeSim - Educational Stock Trading Simulator">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#080b12"
+  >
+
+  <meta
+    name="description"
+    content="TradeSim - Educational Stock Trading Simulator"
+  >
 
   <title>TradeSim — Virtual Trading</title>
 
-  <link rel="stylesheet" href="style.css">
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
+
 </head>
+
 
 <body>
 
+
 <div id="toast" class="toast"></div>
 
-<!-- ================= AUTH SCREEN ================= -->
 
-<section id="authScreen" class="auth-screen">
+<!-- =========================================================
+     AUTH SCREEN
+========================================================= -->
+
+<section
+  id="authScreen"
+  class="auth-screen"
+>
+
 
   <div class="auth-glow glow-one"></div>
+
   <div class="auth-glow glow-two"></div>
+
 
   <div class="auth-card">
 
+
+    <!-- BRAND -->
+
     <div class="brand">
-      <div class="brand-icon">T</div>
+
+      <div class="brand-icon">
+        T
+      </div>
 
       <div>
+
         <div class="brand-name">
           Trade<span>Sim</span>
         </div>
@@ -35,8 +71,13 @@
         <div class="brand-subtitle">
           Virtual trading. Real learning.
         </div>
+
       </div>
+
     </div>
+
+
+    <!-- AUTH HEADING -->
 
     <div class="auth-heading">
 
@@ -51,9 +92,16 @@
     </div>
 
 
-    <!-- LOGIN -->
+    <!-- =====================================================
+         LOGIN FORM
+    ====================================================== -->
 
-    <form id="loginForm" class="auth-form">
+    <form
+      id="loginForm"
+      class="auth-form"
+      onsubmit="loginTrader(event)"
+    >
+
 
       <div class="field">
 
@@ -63,7 +111,9 @@
 
         <div class="input-wrap">
 
-          <span>👤</span>
+          <span>
+            👤
+          </span>
 
           <input
             id="loginUsername"
@@ -81,35 +131,41 @@
 
       <div class="field">
 
-  <label for="loginPassword">
-    Password
-  </label>
+        <label for="loginPassword">
+          Password
+        </label>
 
-  <div class="input-wrap">
+        <div class="input-wrap">
 
-    <span>🔒</span>
+          <span>
+            🔒
+          </span>
 
-    <input
-      id="loginPassword"
-      type="password"
-      autocomplete="current-password"
-      placeholder="Enter your password"
-      required
-    >
+          <input
+            id="loginPassword"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Enter your password"
+            required
+          >
 
-    <button
-      type="button"
-      class="password-toggle"
-      onclick="togglePassword('loginPassword', this)"
-    >
-      Show
-    </button>
+          <button
+            type="button"
+            class="password-toggle"
+            onclick="togglePassword('loginPassword', this)"
+          >
+            Show
+          </button>
 
-  </div>
+        </div>
 
-</div>
+      </div>
 
-<div id="loginMessage" class="auth-message"></div>
+
+      <div
+        id="loginMessage"
+        class="auth-message"
+      ></div>
 
 
       <button
@@ -117,16 +173,31 @@
         class="primary-button"
         id="loginButton"
       >
-        <span>Login to TradeSim</span>
-        <span>→</span>
+
+        <span>
+          Login to TradeSim
+        </span>
+
+        <span>
+          →
+        </span>
+
       </button>
+
 
     </form>
 
 
-    <!-- REGISTER -->
+    <!-- =====================================================
+         REGISTER FORM
+    ====================================================== -->
 
-    <form id="registerForm" class="auth-form hidden">
+    <form
+      id="registerForm"
+      class="auth-form hidden"
+      onsubmit="registerTrader(event)"
+    >
+
 
       <div class="field">
 
@@ -136,7 +207,9 @@
 
         <div class="input-wrap">
 
-          <span>👤</span>
+          <span>
+            👤
+          </span>
 
           <input
             id="registerUsername"
@@ -164,7 +237,9 @@
 
         <div class="input-wrap">
 
-          <span>🔒</span>
+          <span>
+            🔒
+          </span>
 
           <input
             id="registerPassword"
@@ -185,11 +260,18 @@
 
         </div>
 
+
         <div class="password-strength">
+
           <div id="strengthBar"></div>
+
         </div>
 
-        <div id="strengthText" class="field-hint">
+
+        <div
+          id="strengthText"
+          class="field-hint"
+        >
           Use at least 8 characters.
         </div>
 
@@ -204,7 +286,9 @@
 
         <div class="input-wrap">
 
-          <span>✓</span>
+          <span>
+            ✓
+          </span>
 
           <input
             id="registerConfirmPassword"
@@ -218,19 +302,41 @@
         </div>
 
       </div>
-      <div id="registerMessage" class="auth-message"></div>
+
+
+      <!-- REGISTRATION MESSAGE -->
+
+      <div
+        id="registerMessage"
+        class="auth-message"
+      ></div>
+
+
+      <!-- REGISTER BUTTON -->
 
       <button
         type="submit"
         class="primary-button"
         id="registerButton"
       >
-        <span>Create Trader Account</span>
-        <span>→</span>
+
+        <span>
+          Create Trader Account
+        </span>
+
+        <span>
+          →
+        </span>
+
       </button>
+
 
     </form>
 
+
+    <!-- =====================================================
+         AUTH SWITCH
+    ====================================================== -->
 
     <div class="auth-switch">
 
@@ -249,33 +355,54 @@
     </div>
 
 
+    <!-- =====================================================
+         SIMULATION NOTE
+    ====================================================== -->
+
     <div class="simulation-note">
 
-      <span>🛡️</span>
+      <span>
+        🛡️
+      </span>
 
       <div>
-        <strong>Simulation only</strong>
+
+        <strong>
+          Simulation only
+        </strong>
 
         <p>
           No real money is used. TradeSim is an
           educational trading simulator.
         </p>
+
       </div>
 
     </div>
+
 
   </div>
 
 </section>
 
 
-<!-- ================= TRADING APP ================= -->
 
-<div id="appScreen" class="app hidden">
+<!-- =========================================================
+     TRADING APP
+========================================================= -->
+
+<div
+  id="appScreen"
+  class="app hidden"
+>
+
+
+  <!-- HEADER -->
 
   <header>
 
     <div class="topbar">
+
 
       <div>
 
@@ -283,11 +410,15 @@
           Trade<span>Sim</span>
         </div>
 
-        <div id="welcomeUser" class="user-label">
+        <div
+          id="welcomeUser"
+          class="user-label"
+        >
           Trader
         </div>
 
       </div>
+
 
       <div class="header-actions">
 
@@ -304,20 +435,29 @@
 
       </div>
 
+
     </div>
 
   </header>
 
 
+
+  <!-- MAIN -->
+
   <main>
 
-    <!-- ACCOUNT -->
+
+    <!-- =====================================================
+         ACCOUNT
+    ====================================================== -->
 
     <section class="balance-card">
+
 
       <div class="muted">
         Available simulated cash
       </div>
+
 
       <div
         class="balance"
@@ -326,97 +466,172 @@
         ₹1,00,000.00
       </div>
 
+
       <div class="stats">
 
+
         <div class="stat">
-          <div class="muted">Portfolio</div>
-          <div class="stat-value" id="portfolio">
+
+          <div class="muted">
+            Portfolio
+          </div>
+
+          <div
+            class="stat-value"
+            id="portfolio"
+          >
             ₹1,00,000.00
           </div>
+
         </div>
 
-        <div class="stat">
-          <div class="muted">Unrealized P&L</div>
-          <div class="stat-value" id="unrealized">
-            ₹0.00
-          </div>
-        </div>
 
         <div class="stat">
-          <div class="muted">Realized P&L</div>
-          <div class="stat-value" id="realized">
+
+          <div class="muted">
+            Unrealized P&L
+          </div>
+
+          <div
+            class="stat-value"
+            id="unrealized"
+          >
             ₹0.00
           </div>
+
         </div>
 
+
         <div class="stat">
-          <div class="muted">Total P&L</div>
-          <div class="stat-value" id="totalPnl">
+
+          <div class="muted">
+            Realized P&L
+          </div>
+
+          <div
+            class="stat-value"
+            id="realized"
+          >
             ₹0.00
           </div>
+
         </div>
+
+
+        <div class="stat">
+
+          <div class="muted">
+            Total P&L
+          </div>
+
+          <div
+            class="stat-value"
+            id="totalPnl"
+          >
+            ₹0.00
+          </div>
+
+        </div>
+
 
       </div>
 
     </section>
 
 
-    <!-- MARKET -->
+
+    <!-- =====================================================
+         MARKET
+    ====================================================== -->
 
     <section class="section">
 
+
       <div class="section-title">
 
-        <span>Market</span>
+        <span>
+          Market
+        </span>
 
         <span class="market-status">
+
           <i></i>
+
           SIMULATED
+
         </span>
 
       </div>
+
 
       <div
         id="market"
         class="market-grid"
       ></div>
 
+
     </section>
 
 
-    <!-- POSITIONS -->
+
+    <!-- =====================================================
+         POSITIONS
+    ====================================================== -->
 
     <section class="section">
 
+
       <div class="section-title">
-        <span>Open Positions</span>
+
+        <span>
+          Open Positions
+        </span>
+
       </div>
+
 
       <div id="positions"></div>
 
+
     </section>
 
 
-    <!-- ORDERS -->
+
+    <!-- =====================================================
+         ORDERS
+    ====================================================== -->
 
     <section class="section">
 
+
       <div class="section-title">
-        <span>Recent Orders</span>
+
+        <span>
+          Recent Orders
+        </span>
+
       </div>
+
 
       <div id="orders"></div>
 
+
     </section>
 
 
-    <!-- ADMIN -->
+
+    <!-- =====================================================
+         MARKET CONTROLS
+    ====================================================== -->
 
     <section class="section">
 
+
       <div class="section-title">
 
-        <span>Market Controls</span>
+        <span>
+          Market Controls
+        </span>
 
         <span class="badge demo">
           DEMO
@@ -424,14 +639,20 @@
 
       </div>
 
+
       <div class="portfolio-card">
 
+
         <div class="muted">
+
           Temporary controls for this educational
           simulation.
+
         </div>
 
+
         <div class="stock-actions">
+
 
           <button
             class="btn buy-btn"
@@ -440,12 +661,14 @@
             📈 Bull
           </button>
 
+
           <button
             class="btn sell-btn"
             onclick="marketMove('DOWN')"
           >
             📉 Bear
           </button>
+
 
           <button
             class="btn volatile-btn"
@@ -454,7 +677,9 @@
             ⚡ Volatile
           </button>
 
+
         </div>
+
 
         <button
           class="reset-button"
@@ -463,10 +688,15 @@
           Reset Simulation
         </button>
 
+
       </div>
+
 
     </section>
 
+
+
+    <!-- DISCLAIMER -->
 
     <div class="disclaimer">
 
@@ -478,21 +708,29 @@
 
     </div>
 
+
   </main>
+
 
 </div>
 
 
-<!-- ================= ORDER MODAL ================= -->
+
+<!-- =========================================================
+     ORDER MODAL
+========================================================= -->
 
 <div
   id="orderModal"
   class="modal-overlay"
 >
 
+
   <div class="modal">
 
+
     <div class="modal-header">
+
 
       <div>
 
@@ -504,19 +742,25 @@
 
       </div>
 
+
       <button
         class="modal-close"
+        type="button"
         onclick="closeOrder()"
       >
         ×
       </button>
 
+
     </div>
+
 
 
     <div class="form-group">
 
-      <label>Order side</label>
+      <label>
+        Order side
+      </label>
 
       <select id="orderSide">
 
@@ -533,9 +777,12 @@
     </div>
 
 
+
     <div class="form-group">
 
-      <label>Quantity</label>
+      <label>
+        Quantity
+      </label>
 
       <input
         id="orderQuantity"
@@ -548,9 +795,12 @@
     </div>
 
 
+
     <div class="form-group">
 
-      <label>Simulated execution price</label>
+      <label>
+        Simulated execution price
+      </label>
 
       <input
         id="orderPrice"
@@ -560,6 +810,7 @@
       >
 
     </div>
+
 
 
     <div class="estimate">
@@ -575,58 +826,113 @@
     </div>
 
 
+
     <div class="modal-actions">
+
 
       <button
         class="cancel-btn"
+        type="button"
         onclick="closeOrder()"
       >
         Cancel
       </button>
 
+
       <button
         class="confirm-btn"
+        type="button"
         onclick="executeOrder()"
       >
         Confirm Order
       </button>
 
+
     </div>
+
 
   </div>
 
 </div>
 
 
-<!-- ================= BOTTOM NAV ================= -->
+
+<!-- =========================================================
+     BOTTOM NAV
+========================================================= -->
 
 <nav class="bottom-nav">
 
-  <button class="nav-btn active">
-    <span>⌂</span>
+
+  <button
+    class="nav-btn active"
+    type="button"
+  >
+
+    <span>
+      ⌂
+    </span>
+
     Home
+
   </button>
 
-  <button class="nav-btn">
-    <span>◈</span>
+
+  <button
+    class="nav-btn"
+    type="button"
+  >
+
+    <span>
+      ◈
+    </span>
+
     Market
+
   </button>
 
-  <button class="nav-btn">
-    <span>▣</span>
+
+  <button
+    class="nav-btn"
+    type="button"
+  >
+
+    <span>
+      ▣
+    </span>
+
     Portfolio
+
   </button>
 
-  <button class="nav-btn">
-    <span>☷</span>
+
+  <button
+    class="nav-btn"
+    type="button"
+  >
+
+    <span>
+      ☷
+    </span>
+
     Orders
+
   </button>
+
 
 </nav>
 
 
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
 <script src="data.js"></script>
+
 <script src="app.js"></script>
 
+
 </body>
-  </html>
+
+</html>
