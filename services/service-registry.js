@@ -1,11 +1,15 @@
 /* =========================================================
-   TRADESIM SERVICE BASE
+   TRADESIM SERVICE REGISTRY
    =========================================================
 
-   Common lifecycle contract for all TradeSim services.
+   Central registry for all TradeSim services.
 
-   Future services can extend this class without modifying
-   the core bootstrap system.
+   Responsibilities:
+   - Register services
+   - Retrieve services
+   - Initialize services
+   - Destroy services
+   - Check service health
 
 ========================================================= */
 
@@ -14,78 +18,186 @@
   "use strict";
 
 
-  class TradeSimService {
+  class TradeSimServiceRegistry {
 
-    constructor(name, options = {}) {
+    constructor() {
+
+      this.services =
+        new Map();
+
+    }
+
+
+    /* =======================================================
+       REGISTER SERVICE
+    ======================================================= */
+
+    register(service) {
+
+      if (!service) {
+
+        throw new Error(
+          "Service is required."
+        );
+
+      }
+
+
+      if (
+        typeof service.name !== "string" ||
+        !service.name.trim()
+      ) {
+
+        throw new Error(
+          "Service must have a valid name."
+        );
+
+      }
+
+
+      const name =
+        service.name.trim();
+
+
+      if (
+        this.services.has(name)
+      ) {
+
+        throw new Error(
+          `Service "${name}" is already registered.`
+        );
+
+      }
+
+
+      this.services.set(
+        name,
+        service
+      );
+
+
+      global.TradeSimLogger?.service(
+        name,
+        "Registered"
+      );
+
+
+      return service;
+
+    }
+
+
+    /* =======================================================
+       UNREGISTER SERVICE
+    ======================================================= */
+
+    unregister(name) {
 
       if (
         typeof name !== "string" ||
         !name.trim()
       ) {
 
-        throw new Error(
-          "Service name is required."
-        );
+        return false;
 
       }
 
 
-      this.name =
+      const serviceName =
         name.trim();
 
 
-      this.options =
-        options || {};
+      const service =
+        this.services.get(
+          serviceName
+        );
 
 
-      this.initialized =
-        false;
+      if (!service) {
+
+        return false;
+
+      }
 
 
-      this.destroyed =
-        false;
+      this.services.delete(
+        serviceName
+      );
 
 
-      this.createdAt =
-        new Date().toISOString();
+      global.TradeSimLogger?.service(
+        serviceName,
+        "Unregistered"
+      );
+
+
+      return true;
 
     }
 
 
     /* =======================================================
-       INITIALIZE
+       GET SERVICE
     ======================================================= */
 
-    async initialize(context = {}) {
+    get(name) {
 
-      if (this.initialized) {
+      if (
+        typeof name !== "string"
+      ) {
 
-        return this;
+        return undefined;
 
       }
 
 
-      this.context =
-        context;
-
-
-      await this.onInitialize(
-        context
+      return this.services.get(
+        name.trim()
       );
 
-
-      this.initialized =
-        true;
+    }
 
 
-      this.destroyed =
-        false;
+    /* =======================================================
+       HAS SERVICE
+    ======================================================= */
+
+    has(name) {
+
+      if (
+        typeof name !== "string"
+      ) {
+
+        return false;
+
+      }
 
 
-      global.TradeSimLogger?.service(
-        this.name,
-        "Initialized"
+      return this.services.has(
+        name.trim()
       );
+
+    }
+
+
+    /* =======================================================
+       INITIALIZE ALL SERVICES
+    ======================================================= */
+
+    async initializeAll(
+      context = {}
+    ) {
+
+      for (
+        const service
+        of this.services.values()
+      ) {
+
+        await service.initialize(
+          context
+        );
+
+      }
 
 
       return this;
@@ -94,61 +206,41 @@
 
 
     /* =======================================================
-       INITIALIZATION HOOK
+       DESTROY ALL SERVICES
     ======================================================= */
 
-    async onInitialize() {
+    async destroyAll() {
 
-      /*
-       * Override in child services.
-       */
+      const services =
+        Array.from(
+          this.services.values()
+        ).reverse();
 
-    }
 
-
-    /* =======================================================
-       DESTROY
-    ======================================================= */
-
-    async destroy() {
-
-      if (
-        this.destroyed
+      for (
+        const service
+        of services
       ) {
 
-        return;
+        await service.destroy();
 
       }
 
 
-      await this.onDestroy();
-
-
-      this.initialized =
-        false;
-
-
-      this.destroyed =
-        true;
-
-
-      global.TradeSimLogger?.service(
-        this.name,
-        "Destroyed"
-      );
+      return this;
 
     }
 
 
     /* =======================================================
-       DESTROY HOOK
+       LIST SERVICES
     ======================================================= */
 
-    async onDestroy() {
+    list() {
 
-      /*
-       * Override in child services.
-       */
+      return Array.from(
+        this.services.keys()
+      );
 
     }
 
@@ -159,44 +251,57 @@
 
     health() {
 
-      return {
+      const result = {};
 
-        name:
-          this.name,
 
-        initialized:
-          this.initialized,
+      for (
+        const [
+          name,
+          service
+        ]
+        of this.services.entries()
+      ) {
 
-        destroyed:
-          this.destroyed,
+        result[name] =
+          typeof service.health === "function"
+            ? service.health()
+            : {
+                name: name,
+                initialized: false,
+                destroyed: false
+              };
 
-        createdAt:
-          this.createdAt
+      }
 
-      };
+
+      return result;
 
     }
 
 
     /* =======================================================
-       CONTEXT
+       CLEAR REGISTRY
     ======================================================= */
 
-    getContext() {
+    clear() {
 
-      return this.context || {};
+      this.services.clear();
 
     }
 
   }
 
 
-  global.TradeSimService =
-    TradeSimService;
+  /* =========================================================
+     GLOBAL EXPORT
+  ========================================================= */
+
+  global.TradeSimServiceRegistry =
+    TradeSimServiceRegistry;
 
 
-  global.TradeSimServiceClass =
-    TradeSimService;
+  global.TradeSimRegistry =
+    new TradeSimServiceRegistry();
 
 
 })(window);
