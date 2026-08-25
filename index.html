@@ -1279,8 +1279,43 @@
 
 
 
-<!-- =========================================================
-     START APPLICATION
-========================================================= -->
 
-  
+  <!-- ==================================================
+     START APPLICATION
+     ================================================== -->
+
+<script>
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    async function () {
+
+      try {
+
+        if (
+          window.TradeSimBootstrap &&
+          typeof window.TradeSimBootstrap.start ===
+
+          "function"
+        ) {
+
+          await window.TradeSimBootstrap.start();
+
+        }
+
+      } catch (error) {
+
+        console.error(
+          "TradeSim startup failed:",
+          error
+        );
+
+      }
+
+    }
+  );
+
+</script>
+
+</body>
+</html>
