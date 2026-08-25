@@ -463,8 +463,6 @@
     >
 
 
-      <!-- ACCOUNT HERO -->
-
       <section class="balance-card">
 
         <div class="muted">
@@ -1220,26 +1218,69 @@
 
 
 <!-- =========================================================
-     TRADESIM CORE SERVICES
+     TRADESIM RUNTIME CONFIGURATION
 ========================================================= -->
 
-<script src="service-base.js"></script>
-
-<script src="service-registry.js"></script>
+<script src="config/config.js"></script>
 
 
 
 <!-- =========================================================
-     APPLICATION JAVASCRIPT
+     TRADESIM CORE
+     
+     Loading order is IMPORTANT.
+========================================================= -->
+
+<script src="core/logger.js"></script>
+
+<script src="core/event-bus.js"></script>
+
+<script src="core/service-registry.js"></script>
+
+<script src="core/module-registry.js"></script>
+
+<script src="core/bootstrap.js"></script>
+
+
+
+<!-- =========================================================
+     TRADESIM SERVICES
+========================================================= -->
+
+<script src="services/service-base.js"></script>
+
+<script src="services/service-registry.js"></script>
+
+<script src="services/market-data-service.js"></script>
+
+
+
+<!-- =========================================================
+     APPLICATION DATA
 ========================================================= -->
 
 <script src="data.js"></script>
 
-<script src="navigation.js"></script>
+
+
+<!-- =========================================================
+     APPLICATION MODULES
+========================================================= -->
+
+<script src="js/navigation.js"></script>
+
+
+
+<!-- =========================================================
+     MAIN APPLICATION
+========================================================= -->
 
 <script src="app.js"></script>
 
 
-</body>
 
-        </html>
+<!-- =========================================================
+     START APPLICATION
+========================================================= -->
+
+  
