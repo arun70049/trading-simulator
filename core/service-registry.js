@@ -2,15 +2,15 @@
    TRADESIM CORE — SERVICE REGISTRY
    =========================================================
 
-   Services such as:
-   - Market Data
-   - Authentication
-   - Portfolio
-   - Orders
-   - Analytics
-   - Storage
-
-   can register independently.
+   Responsibilities:
+   - Register services
+   - Retrieve services
+   - Initialize individual services
+   - Initialize all services
+   - Destroy individual services
+   - Destroy all services
+   - Check service health
+   - Maintain centralized service lifecycle
 
 ========================================================= */
 
@@ -51,8 +51,8 @@
 
 
       if (
-        service === null ||
-        service === undefined
+        !service ||
+        typeof service !== "object"
       ) {
 
         throw new Error(
@@ -96,7 +96,7 @@
 
     /* =======================================================
        REPLACE
-       ======================================================= */
+    ======================================================= */
 
     replace(
       name,
@@ -110,6 +110,18 @@
 
         throw new Error(
           "Service name is required."
+        );
+
+      }
+
+
+      if (
+        !service ||
+        typeof service !== "object"
+      ) {
+
+        throw new Error(
+          `Invalid service: ${name}`
         );
 
       }
@@ -137,13 +149,63 @@
 
 
     /* =======================================================
+       UNREGISTER
+    ======================================================= */
+
+    unregister(name) {
+
+      if (
+        typeof name !== "string" ||
+        !name.trim()
+      ) {
+
+        return false;
+
+      }
+
+
+      const serviceName =
+        name.trim();
+
+
+      const removed =
+        this.services.delete(
+          serviceName
+        );
+
+
+      if (removed) {
+
+        global.TradeSimLogger?.service(
+          serviceName,
+          "Unregistered"
+        );
+
+      }
+
+
+      return removed;
+
+    }
+
+
+    /* =======================================================
        GET
     ======================================================= */
 
     get(name) {
 
+      if (
+        typeof name !== "string"
+      ) {
+
+        return undefined;
+
+      }
+
+
       return this.services.get(
-        name
+        name.trim()
       );
 
     }
@@ -181,22 +243,218 @@
 
     has(name) {
 
+      if (
+        typeof name !== "string"
+      ) {
+
+        return false;
+
+      }
+
+
       return this.services.has(
-        name
+        name.trim()
       );
 
     }
 
 
     /* =======================================================
-       REMOVE
+       INITIALIZE ONE SERVICE
     ======================================================= */
 
-    remove(name) {
+    async initialize(
+      name,
+      context = {}
+    ) {
 
-      return this.services.delete(
-        name
+      const service =
+        this.require(name);
+
+
+      if (
+        typeof service.initialize ===
+        "function"
+      ) {
+
+        await service.initialize(
+          context
+        );
+
+      }
+
+
+      global.TradeSimLogger?.service(
+        name,
+        "Initialized"
       );
+
+
+      return service;
+
+    }
+
+
+    /* =======================================================
+       INITIALIZE ALL SERVICES
+    ======================================================= */
+
+    async initializeAll(
+      context = {}
+    ) {
+
+      for (
+        const name
+        of this.services.keys()
+      ) {
+
+        await this.initialize(
+          name,
+          context
+        );
+
+      }
+
+
+      return this;
+
+    }
+
+
+    /* =======================================================
+       DESTROY ONE SERVICE
+    ======================================================= */
+
+    async destroy(name) {
+
+      const service =
+        this.get(name);
+
+
+      if (!service) {
+
+        return false;
+
+      }
+
+
+      if (
+        typeof service.destroy ===
+        "function"
+      ) {
+
+        await service.destroy();
+
+      }
+
+
+      global.TradeSimLogger?.service(
+        name,
+        "Destroyed"
+      );
+
+
+      return true;
+
+    }
+
+
+    /* =======================================================
+       DESTROY ALL SERVICES
+    ======================================================= */
+
+    async destroyAll() {
+
+      const names =
+        Array.from(
+          this.services.keys()
+        ).reverse();
+
+
+      for (
+        const name
+        of names
+      ) {
+
+        try {
+
+          await this.destroy(
+            name
+          );
+
+        } catch (error) {
+
+          global.TradeSimLogger?.error?.(
+            `Service destroy failed: ${name}`,
+            error
+          );
+
+        }
+
+      }
+
+
+      return this;
+
+    }
+
+
+    /* =======================================================
+       HEALTH CHECK
+    ======================================================= */
+
+    health() {
+
+      const result = {};
+
+
+      for (
+        const [
+          name,
+          service
+        ]
+        of this.services.entries()
+      ) {
+
+        try {
+
+          result[name] =
+            typeof service.health ===
+            "function"
+
+              ? service.health()
+
+              : {
+                  name,
+                  initialized:
+                    false,
+                  destroyed:
+                    false
+                };
+
+        } catch (error) {
+
+          result[name] = {
+
+            name,
+
+            healthy:
+              false,
+
+            error:
+              String(
+                error?.message ||
+                error
+              )
+
+          };
+
+        }
+
+      }
+
+
+      return result;
 
     }
 
@@ -226,6 +484,10 @@
 
   }
 
+
+  /* =========================================================
+     GLOBAL SERVICE REGISTRY
+  ========================================================= */
 
   const registry =
     new ServiceRegistry();
