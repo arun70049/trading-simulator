@@ -4,12 +4,14 @@
 
    Responsibilities:
    - Start the application in a controlled order
-   - Initialize core dependencies
+   - Validate core dependencies
+   - Build shared application context
    - Initialize registered services
    - Initialize registered modules
-   - Provide application lifecycle events
+   - Emit application lifecycle events
    - Prevent duplicate startup
    - Provide safe shutdown
+   - Provide runtime status
    - Keep startup logic outside app.js
 
 ========================================================= */
@@ -23,32 +25,40 @@
 
     constructor(options = {}) {
 
-      this.options = options;
+      this.options =
+        options || {};
 
-      this.started = false;
+      this.started =
+        false;
 
-      this.starting = false;
+      this.starting =
+        false;
 
-      this.stopping = false;
+      this.stopping =
+        false;
 
-      this.stopped = false;
+      this.stopped =
+        false;
 
-      this.startedAt = null;
+      this.startedAt =
+        null;
 
-      this.context = {};
+      this.context =
+        {};
 
     }
 
 
     /* =======================================================
-       INTERNAL LOGGER
+       LOGGER
     ======================================================= */
 
     log(...args) {
 
       if (
         global.TradeSimLogger &&
-        typeof global.TradeSimLogger.info === "function"
+        typeof global.TradeSimLogger.info ===
+        "function"
       ) {
 
         global.TradeSimLogger.info(
@@ -72,7 +82,8 @@
 
       if (
         global.TradeSimLogger &&
-        typeof global.TradeSimLogger.error === "function"
+        typeof global.TradeSimLogger.error ===
+        "function"
       ) {
 
         global.TradeSimLogger.error(
@@ -134,7 +145,9 @@
       }
 
 
-      if (missing.length > 0) {
+      if (
+        missing.length > 0
+      ) {
 
         throw new Error(
           "TradeSim core dependencies missing: " +
@@ -155,10 +168,13 @@
 
     buildContext() {
 
+      const config =
+        global.TradeSimConfig || {};
+
+
       this.context = {
 
-        config:
-          global.TradeSimConfig || {},
+        config,
 
         eventBus:
           global.TradeSimEventBus,
@@ -176,7 +192,8 @@
           new Date().toISOString(),
 
         version:
-          global.TradeSimConfig?.app?.version ||
+          config.application?.version ||
+          config.environment?.version ||
           "1.0.0"
 
       };
@@ -197,17 +214,19 @@
     ) {
 
       if (
-        !global.TradeSimEventBus
+        !global.TradeSimEventBus ||
+        typeof global.TradeSimEventBus.emit !==
+        "function"
       ) {
 
-        return;
+        return null;
 
       }
 
 
       try {
 
-        await global.TradeSimEventBus.emit(
+        return await global.TradeSimEventBus.emit(
           eventName,
           payload,
           {
@@ -223,6 +242,8 @@
           error
         );
 
+        return null;
+
       }
 
     }
@@ -234,23 +255,37 @@
 
     async start() {
 
-      if (this.started) {
+      /* -----------------------------------------------------
+         Already running
+      ----------------------------------------------------- */
+
+      if (
+        this.started
+      ) {
 
         return this.context;
 
       }
 
 
-      if (this.starting) {
+      /* -----------------------------------------------------
+         Startup already in progress
+      ----------------------------------------------------- */
+
+      if (
+        this.starting
+      ) {
 
         return this.context;
 
       }
 
 
-      this.starting = true;
+      this.starting =
+        true;
 
-      this.stopped = false;
+      this.stopped =
+        false;
 
 
       try {
@@ -268,11 +303,15 @@
 
 
         /* ---------------------------------------------------
-           Build shared context
+           Build context
         --------------------------------------------------- */
 
         this.buildContext();
 
+
+        /* ---------------------------------------------------
+           Startup lifecycle event
+        --------------------------------------------------- */
 
         await this.emit(
           "app:starting",
@@ -284,21 +323,31 @@
 
 
         /* ---------------------------------------------------
-           Initialize services/modules
-           --------------------------------------------------- */
+           Initialize services first
+        --------------------------------------------------- */
 
         await this.initializeServices();
+
+
+        /* ---------------------------------------------------
+           Initialize modules second
+        --------------------------------------------------- */
 
         await this.initializeModules();
 
 
         /* ---------------------------------------------------
-           Application started
+           Mark application started
         --------------------------------------------------- */
 
-        this.started = true;
+        this.started =
+          true;
 
-        this.starting = false;
+        this.starting =
+          false;
+
+        this.stopped =
+          false;
 
         this.startedAt =
           new Date();
@@ -307,6 +356,10 @@
         this.context.startedAt =
           this.startedAt.toISOString();
 
+
+        /* ---------------------------------------------------
+           Started lifecycle event
+        --------------------------------------------------- */
 
         await this.emit(
           "app:started",
@@ -326,9 +379,11 @@
 
       } catch (error) {
 
-        this.starting = false;
+        this.starting =
+          false;
 
-        this.started = false;
+        this.started =
+          false;
 
 
         this.error(
@@ -361,19 +416,33 @@
 
     async initializeServices() {
 
-      const services =
+      const registry =
         global.TradeSimServiceRegistry;
 
 
-      if (!services) {
+      if (
+        !registry
+      ) {
 
         return;
 
       }
 
 
+      if (
+        typeof registry.list !==
+        "function"
+      ) {
+
+        throw new Error(
+          "TradeSimServiceRegistry.list() is unavailable."
+        );
+
+      }
+
+
       const names =
-        services.list();
+        registry.list();
 
 
       this.log(
@@ -386,11 +455,18 @@
       ) {
 
         const service =
-          services.get(name);
+          typeof registry.get ===
+          "function"
+            ? registry.get(name)
+            : null;
 
 
-        if (!service) {
+        if (
+          !service
+        ) {
+
           continue;
+
         }
 
 
@@ -445,19 +521,33 @@
 
     async initializeModules() {
 
-      const modules =
+      const registry =
         global.TradeSimModuleRegistry;
 
 
-      if (!modules) {
+      if (
+        !registry
+      ) {
 
         return;
 
       }
 
 
+      if (
+        typeof registry.list !==
+        "function"
+      ) {
+
+        throw new Error(
+          "TradeSimModuleRegistry.list() is unavailable."
+        );
+
+      }
+
+
       const names =
-        modules.list();
+        registry.list();
 
 
       this.log(
@@ -471,9 +561,26 @@
 
         try {
 
-          await modules.initialize(
+          if (
+            typeof registry.initialize !==
+            "function"
+          ) {
+
+            throw new Error(
+              "TradeSimModuleRegistry.initialize() is unavailable."
+            );
+
+          }
+
+
+          await registry.initialize(
             name,
             this.context
+          );
+
+
+          this.log(
+            `Module initialized: ${name}`
           );
 
 
@@ -481,8 +588,13 @@
             "module:initialized",
             {
               name,
+
               module:
-                modules.get(name)
+                typeof registry.get ===
+                "function"
+                  ? registry.get(name)
+                  : null
+
             }
           );
 
@@ -528,7 +640,8 @@
       }
 
 
-      this.stopping = true;
+      this.stopping =
+        true;
 
 
       try {
@@ -548,11 +661,14 @@
 
 
         /* ---------------------------------------------------
-           Destroy modules
+           Destroy modules first
         --------------------------------------------------- */
 
         if (
-          global.TradeSimModuleRegistry
+          global.TradeSimModuleRegistry &&
+          typeof global.TradeSimModuleRegistry
+            .destroyAll ===
+          "function"
         ) {
 
           await global.TradeSimModuleRegistry
@@ -562,46 +678,61 @@
 
 
         /* ---------------------------------------------------
-           Destroy services
+           Destroy services in reverse order
         --------------------------------------------------- */
 
         if (
           global.TradeSimServiceRegistry
         ) {
 
-          const serviceNames =
-            global.TradeSimServiceRegistry.list()
-              .reverse();
+          const registry =
+            global.TradeSimServiceRegistry;
 
 
-          for (
-            const name of serviceNames
+          if (
+            typeof registry.list ===
+            "function"
           ) {
 
-            const service =
-              global.TradeSimServiceRegistry.get(
-                name
-              );
+            const serviceNames =
+              registry
+                .list()
+                .slice()
+                .reverse();
 
 
-            try {
+            for (
+              const name of serviceNames
+            ) {
 
-              if (
-                service &&
-                typeof service.destroy ===
+              const service =
+                typeof registry.get ===
                 "function"
-              ) {
+                  ? registry.get(name)
+                  : null;
 
-                await service.destroy();
+
+              try {
+
+                if (
+                  service &&
+                  typeof service.destroy ===
+                  "function"
+                ) {
+
+                  await service.destroy();
+
+                }
+
+
+              } catch (error) {
+
+                this.error(
+                  `Service shutdown failed: ${name}`,
+                  error
+                );
 
               }
-
-            } catch (error) {
-
-              this.error(
-                `Service shutdown failed: ${name}`,
-                error
-              );
 
             }
 
@@ -610,16 +741,29 @@
         }
 
 
-        this.started = false;
+        /* ---------------------------------------------------
+           Reset lifecycle state
+        --------------------------------------------------- */
 
-        this.stopping = false;
+        this.started =
+          false;
 
-        this.stopped = true;
+        this.starting =
+          false;
+
+        this.stopping =
+          false;
+
+        this.stopped =
+          true;
 
 
         await this.emit(
           "app:stopped",
-          {}
+          {
+            context:
+              this.context
+          }
         );
 
 
@@ -630,12 +774,15 @@
 
       } catch (error) {
 
-        this.stopping = false;
+        this.stopping =
+          false;
+
 
         this.error(
           "TradeSim shutdown failed:",
           error
         );
+
 
         throw error;
 
@@ -666,17 +813,35 @@
 
         startedAt:
           this.startedAt
-            ?.toISOString() || null,
+            ?.toISOString() ||
+          null,
+
+        version:
+          this.context.version ||
+          null,
 
         modules:
           global.TradeSimModuleRegistry
-            ?.status?.() || [],
+            ?.status?.() ||
+          [],
 
         services:
           global.TradeSimServiceRegistry
-            ?.list?.() || []
+            ?.list?.() ||
+          []
 
       };
+
+    }
+
+
+    /* =======================================================
+       GET CONTEXT
+    ======================================================= */
+
+    getContext() {
+
+      return this.context;
 
     }
 
